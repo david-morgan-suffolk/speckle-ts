@@ -1,0 +1,47 @@
+subscription OnProjectUpdated($id: String!) {
+  projectUpdated(id: $id) {
+    id
+    type
+    project {
+      id
+      name
+      updatedAt
+    }
+  }
+}
+
+subscription OnProjectModelsUpdated($id: String!) {
+  projectModelsUpdated(id: $id) {
+    id
+    type
+    model {
+      id
+      name
+      updatedAt
+    }
+  }
+}
+
+subscription OnProjectVersionsUpdated($id: String!) {
+  projectVersionsUpdated(id: $id) {
+    id
+    type
+    version {
+      id
+      message
+      createdAt
+    }
+  }
+}
+
+subscription OnProjectCommentsUpdated($target: ViewerUpdateTrackingTarget!) {
+  projectCommentsUpdated(target: $target) {
+    id
+    type
+    comment {
+      id
+      rawText
+      createdAt
+    }
+  }
+}

@@ -1,0 +1,11 @@
+mutation CreateWebhook($webhook: WebhookCreateInput!) {
+  webhookCreate(webhook: $webhook)
+}
+
+mutation UpdateWebhook($webhook: WebhookUpdateInput!) {
+  webhookUpdate(webhook: $webhook)
+}
+
+mutation DeleteWebhook($webhook: WebhookDeleteInput!) {
+  webhookDelete(webhook: $webhook)
+}

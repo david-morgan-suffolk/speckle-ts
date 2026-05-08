@@ -1,0 +1,29 @@
+mutation CreateWorkspace($input: WorkspaceCreateInput!) {
+  workspaceMutations {
+    create(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+}
+
+mutation UpdateWorkspace($input: WorkspaceUpdateInput!) {
+  workspaceMutations {
+    update(input: $input) {
+      id
+      name
+      description
+    }
+  }
+}
+
+mutation InviteToWorkspace($workspaceId: String!, $input: WorkspaceInviteCreateInput!) {
+  workspaceMutations {
+    invites {
+      create(workspaceId: $workspaceId, input: $input) {
+        id
+      }
+    }
+  }
+}

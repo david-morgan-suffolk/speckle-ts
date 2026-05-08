@@ -1,0 +1,33 @@
+query GetModel($projectId: String!, $modelId: String!) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      id
+      name
+      description
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+query GetModelVersions($projectId: String!, $modelId: String!, $cursor: String, $limit: Int) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      versions(cursor: $cursor, limit: $limit) {
+        totalCount
+        cursor
+        items {
+          id
+          message
+          sourceApplication
+          referencedObject
+          createdAt
+          authorUser {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+}

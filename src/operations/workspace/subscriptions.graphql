@@ -1,0 +1,9 @@
+subscription OnWorkspaceUpdated($workspaceId: String, $workspaceSlug: String) {
+  workspaceUpdated(workspaceId: $workspaceId, workspaceSlug: $workspaceSlug) {
+    id
+    workspace {
+      id
+      name
+    }
+  }
+}

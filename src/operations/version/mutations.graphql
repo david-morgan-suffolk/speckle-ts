@@ -1,0 +1,30 @@
+mutation CreateVersion($input: CreateVersionInput!) {
+  versionMutations {
+    create(input: $input) {
+      id
+      message
+      createdAt
+    }
+  }
+}
+
+mutation UpdateVersion($input: UpdateVersionInput!) {
+  versionMutations {
+    update(input: $input) {
+      id
+      message
+    }
+  }
+}
+
+mutation DeleteVersions($input: DeleteVersionsInput!) {
+  versionMutations {
+    delete(input: $input)
+  }
+}
+
+mutation MarkVersionReceived($input: MarkReceivedVersionInput!) {
+  versionMutations {
+    markReceived(input: $input)
+  }
+}

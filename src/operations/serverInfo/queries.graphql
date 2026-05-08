@@ -1,0 +1,10 @@
+query GetServerInfo {
+  serverInfo {
+    name
+    company
+    description
+    version
+    adminContact
+    canonicalUrl
+  }
+}

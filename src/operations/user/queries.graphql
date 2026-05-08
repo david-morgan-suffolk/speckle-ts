@@ -1,0 +1,33 @@
+query GetActiveUser {
+  activeUser {
+    id
+    name
+    email
+    bio
+    company
+    avatar
+    createdAt
+  }
+}
+
+query GetUser($id: String!) {
+  user(id: $id) {
+    id
+    name
+    bio
+    company
+    avatar
+    createdAt
+  }
+}
+
+query SearchUsers($query: String!, $limit: Int, $cursor: String) {
+  userSearch(query: $query, limit: $limit, cursor: $cursor) {
+    cursor
+    items {
+      id
+      name
+      avatar
+    }
+  }
+}

@@ -1,0 +1,26 @@
+subscription OnAutomationsUpdated($projectId: String!) {
+  projectAutomationsUpdated(projectId: $projectId) {
+    type
+    automationId
+    automation {
+      id
+      name
+      enabled
+    }
+  }
+}
+
+subscription OnTriggeredAutomationsStatusUpdated($projectId: String!) {
+  projectTriggeredAutomationsStatusUpdated(projectId: $projectId) {
+    type
+    version {
+      id
+    }
+    model {
+      id
+    }
+    project {
+      id
+    }
+  }
+}

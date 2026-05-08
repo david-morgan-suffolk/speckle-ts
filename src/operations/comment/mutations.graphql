@@ -1,0 +1,30 @@
+mutation CreateComment($input: CreateCommentInput!) {
+  commentMutations {
+    create(input: $input) {
+      id
+      rawText
+      createdAt
+    }
+  }
+}
+
+mutation EditComment($input: EditCommentInput!) {
+  commentMutations {
+    edit(input: $input) {
+      id
+      rawText
+    }
+  }
+}
+
+mutation ArchiveComment($input: ArchiveCommentInput!) {
+  commentMutations {
+    archive(input: $input)
+  }
+}
+
+mutation MarkCommentViewed($input: MarkCommentViewedInput!) {
+  commentMutations {
+    markViewed(input: $input)
+  }
+}

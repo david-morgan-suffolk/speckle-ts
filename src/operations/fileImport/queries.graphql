@@ -1,0 +1,10 @@
+query ListProjectFileImports($projectId: String!, $cursor: String, $limit: Int) {
+  project(id: $projectId) {
+    pendingImportedModels {
+      id
+      modelName
+      convertedStatus
+      uploadDate
+    }
+  }
+}

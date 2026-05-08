@@ -1,0 +1,44 @@
+query GetProject($id: String!) {
+  project(id: $id) {
+    id
+    name
+    description
+    visibility
+    role
+    createdAt
+    updatedAt
+    workspaceId
+  }
+}
+
+query GetProjectModels($projectId: String!, $cursor: String, $limit: Int) {
+  project(id: $projectId) {
+    models(cursor: $cursor, limit: $limit) {
+      totalCount
+      cursor
+      items {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+query SearchProjects($filter: UserProjectsFilter, $cursor: String, $limit: Int) {
+  activeUser {
+    projects(filter: $filter, cursor: $cursor, limit: $limit) {
+      totalCount
+      cursor
+      items {
+        id
+        name
+        visibility
+        role
+        updatedAt
+      }
+    }
+  }
+}

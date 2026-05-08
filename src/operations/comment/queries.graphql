@@ -1,0 +1,20 @@
+query GetProjectComments($projectId: String!, $filter: ProjectCommentsFilter, $cursor: String, $limit: Int) {
+  project(id: $projectId) {
+    commentThreads(filter: $filter, cursor: $cursor, limit: $limit) {
+      totalCount
+      cursor
+      items {
+        id
+        rawText
+        createdAt
+        author {
+          id
+          name
+        }
+        replies {
+          totalCount
+        }
+      }
+    }
+  }
+}

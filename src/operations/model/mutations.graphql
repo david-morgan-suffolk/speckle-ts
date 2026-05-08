@@ -1,0 +1,24 @@
+mutation CreateModel($input: CreateModelInput!) {
+  modelMutations {
+    create(input: $input) {
+      id
+      name
+    }
+  }
+}
+
+mutation UpdateModel($input: UpdateModelInput!) {
+  modelMutations {
+    update(input: $input) {
+      id
+      name
+      description
+    }
+  }
+}
+
+mutation DeleteModel($input: DeleteModelInput!) {
+  modelMutations {
+    delete(input: $input)
+  }
+}

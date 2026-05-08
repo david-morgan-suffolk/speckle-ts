@@ -1,0 +1,14 @@
+query ListWebhooks($projectId: String!) {
+  project(id: $projectId) {
+    webhooks {
+      totalCount
+      items {
+        id
+        url
+        triggers
+        enabled
+        description
+      }
+    }
+  }
+}

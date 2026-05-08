@@ -1,0 +1,10 @@
+mutation UpdateActiveUser($user: UserUpdateInput!) {
+  activeUserMutations {
+    update(user: $user) {
+      id
+      name
+      bio
+      company
+    }
+  }
+}

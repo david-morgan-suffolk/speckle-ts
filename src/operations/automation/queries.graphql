@@ -1,0 +1,32 @@
+query ListProjectAutomations($projectId: String!, $cursor: String, $limit: Int) {
+  project(id: $projectId) {
+    automations(cursor: $cursor, limit: $limit) {
+      totalCount
+      cursor
+      items {
+        id
+        name
+        enabled
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+query GetAutomation($projectId: String!, $automationId: String!) {
+  project(id: $projectId) {
+    automation(id: $automationId) {
+      id
+      name
+      enabled
+      runs {
+        items {
+          id
+          status
+          createdAt
+        }
+      }
+    }
+  }
+}

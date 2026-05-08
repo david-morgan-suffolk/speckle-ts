@@ -1,0 +1,27 @@
+mutation CreateProject($input: ProjectCreateInput!) {
+  projectMutations {
+    create(input: $input) {
+      id
+      name
+      visibility
+    }
+  }
+}
+
+mutation UpdateProject($update: ProjectUpdateInput!) {
+  projectMutations {
+    update(update: $update) {
+      id
+      name
+      description
+      visibility
+      updatedAt
+    }
+  }
+}
+
+mutation DeleteProject($id: String!) {
+  projectMutations {
+    delete(id: $id)
+  }
+}

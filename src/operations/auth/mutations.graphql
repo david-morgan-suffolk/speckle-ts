@@ -1,0 +1,7 @@
+mutation CreateApiToken($token: ApiTokenCreateInput!) {
+  apiTokenCreate(token: $token)
+}
+
+mutation RevokeApiToken($token: String!) {
+  apiTokenRevoke(token: $token)
+}

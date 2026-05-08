@@ -1,0 +1,17 @@
+query GetVersion($projectId: String!, $modelId: String!, $versionId: String!) {
+  project(id: $projectId) {
+    model(id: $modelId) {
+      version(id: $versionId) {
+        id
+        message
+        sourceApplication
+        referencedObject
+        createdAt
+        authorUser {
+          id
+          name
+        }
+      }
+    }
+  }
+}

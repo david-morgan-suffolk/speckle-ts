@@ -1,0 +1,11 @@
+subscription OnCommentActivity($target: ViewerUpdateTrackingTarget!) {
+  projectCommentsUpdated(target: $target) {
+    id
+    type
+    comment {
+      id
+      rawText
+      createdAt
+    }
+  }
+}

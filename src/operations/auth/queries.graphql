@@ -1,0 +1,12 @@
+query ListApiTokens {
+  activeUser {
+    apiTokens {
+      id
+      name
+      lastUsed
+      lifespan
+      createdAt
+      scopes
+    }
+  }
+}

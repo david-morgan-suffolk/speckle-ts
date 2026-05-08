@@ -1,0 +1,17 @@
+mutation StartFileImport($input: GenerateFileUploadUrlInput!) {
+  fileUploadMutations {
+    generateUploadUrl(input: $input) {
+      url
+      fileId
+    }
+  }
+}
+
+mutation FinalizeFileImport($input: StartFileImportInput!) {
+  fileUploadMutations {
+    startFileImport(input: $input) {
+      id
+      modelName
+    }
+  }
+}
