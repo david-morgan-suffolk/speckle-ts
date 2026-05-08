@@ -1,5 +1,7 @@
 import { Node } from "./Node.js";
 import { Version } from "./Version.js";
+import { parseOrThrow } from "../transport/validate.js";
+import { ModelInfoSchema } from "../schemas.js";
 import type { Project } from "./Project.js";
 import type { Speckle } from "../client.js";
 import type { ModelInfo } from "../types.js";
@@ -34,9 +36,9 @@ export class Model extends Node<ModelInfo> {
 
   protected async fetch(): Promise<ModelInfo> {
     const data = await this.speckle.http.request<
-      { project: { model: ModelInfo } },
+      { project: { model: unknown } },
       { projectId: string; modelId: string }
     >(MODEL_QUERY, { projectId: this.project.id, modelId: this.id });
-    return data.project.model;
+    return parseOrThrow("Model", ModelInfoSchema, data.project.model);
   }
 }

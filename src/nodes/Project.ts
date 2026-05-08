@@ -1,8 +1,11 @@
 import { Node } from "./Node.js";
 import { Model } from "./Model.js";
+import { Insight, listProjectInsights } from "./Insight.js";
 import { subscribe } from "../transport/ws.js";
+import { parseOrThrow } from "../transport/validate.js";
+import { ProjectInfoSchema } from "../schemas.js";
 import type { Speckle } from "../client.js";
-import type { ProjectInfo } from "../types.js";
+import type { InsightInfo, ProjectInfo } from "../types.js";
 
 const PROJECT_QUERY = /* GraphQL */ `
   query Project($id: String!) {
@@ -74,11 +77,19 @@ export class Project extends Node<ProjectInfo> {
     return new Model(this.speckle, this, id);
   }
 
+  insight(id: string): Insight {
+    return new Insight(this.speckle, this, id);
+  }
+
+  listInsights(type?: string): Promise<InsightInfo[]> {
+    return listProjectInsights(this.speckle, this.id, type);
+  }
+
   protected async fetch(): Promise<ProjectInfo> {
-    const data = await this.speckle.http.request<{ project: ProjectInfo }, { id: string }>(PROJECT_QUERY, {
+    const data = await this.speckle.http.request<{ project: unknown }, { id: string }>(PROJECT_QUERY, {
       id: this.id,
     });
-    return data.project;
+    return parseOrThrow("Project", ProjectInfoSchema, data.project);
   }
 
   onUpdate(onNext: (event: unknown) => void, onError?: (err: unknown) => void): () => void {

@@ -1,48 +1,33 @@
-export interface ProjectInfo {
-  id: string;
-  name: string;
-  description: string | null;
-  visibility: string;
-  role: string | null;
-  createdAt: string;
-  updatedAt: string;
-  workspaceId: string | null;
-}
+import type { z } from "zod";
+import type {
+  ProjectInfoSchema,
+  ModelInfoSchema,
+  VersionInfoSchema,
+  UserInfoSchema,
+  WorkspaceInfoSchema,
+  InsightInfoSchema,
+  InsightTemplateInfoSchema,
+  InsightResultSchema,
+  InsightDataSourceLinkSchema,
+  InsightQuerySchema,
+  InsightComputeSchema,
+  InsightRuleSchema,
+  InsightFilterClauseSchema,
+} from "@/schemas.js";
 
-export interface ModelInfo {
-  id: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface VersionInfo {
-  id: string;
-  message: string | null;
-  sourceApplication: string | null;
-  referencedObject: string;
-  createdAt: string;
-  authorUser: { id: string; name: string } | null;
-}
-
-export interface UserInfo {
-  id: string;
-  name: string;
-  email: string | null;
-  bio: string | null;
-  company: string | null;
-  avatar: string | null;
-  createdAt: string;
-}
-
-export interface WorkspaceInfo {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  createdAt: string;
-}
+export type ProjectInfo = z.infer<typeof ProjectInfoSchema>;
+export type ModelInfo = z.infer<typeof ModelInfoSchema>;
+export type VersionInfo = z.infer<typeof VersionInfoSchema>;
+export type UserInfo = z.infer<typeof UserInfoSchema>;
+export type WorkspaceInfo = z.infer<typeof WorkspaceInfoSchema>;
+export type InsightInfo = z.infer<typeof InsightInfoSchema>;
+export type InsightTemplateInfo = z.infer<typeof InsightTemplateInfoSchema>;
+export type InsightResult = z.infer<typeof InsightResultSchema>;
+export type InsightDataSourceLink = z.infer<typeof InsightDataSourceLinkSchema>;
+export type InsightQuery = z.infer<typeof InsightQuerySchema>;
+export type InsightCompute = z.infer<typeof InsightComputeSchema>;
+export type InsightRule = z.infer<typeof InsightRuleSchema>;
+export type InsightFilterClause = z.infer<typeof InsightFilterClauseSchema>;
 
 export interface PageInfo<T> {
   totalCount: number;

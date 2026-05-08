@@ -1,4 +1,6 @@
 import { Node } from "./Node.js";
+import { parseOrThrow } from "../transport/validate.js";
+import { UserInfoSchema } from "../schemas.js";
 import type { Speckle } from "../client.js";
 import type { UserInfo } from "../types.js";
 
@@ -47,14 +49,14 @@ export class User extends Node<UserInfo> {
 
   protected async fetch(): Promise<UserInfo> {
     if (this.id === null) {
-      const data = await this.speckle.http.request<{ activeUser: UserInfo | null }>(ACTIVE_USER_QUERY);
+      const data = await this.speckle.http.request<{ activeUser: unknown }>(ACTIVE_USER_QUERY);
       if (!data.activeUser) throw new Error("No active user — token missing or invalid");
-      return data.activeUser;
+      return parseOrThrow("ActiveUser", UserInfoSchema, data.activeUser);
     }
-    const data = await this.speckle.http.request<{ user: UserInfo | null }, { id: string }>(USER_QUERY, {
+    const data = await this.speckle.http.request<{ user: unknown }, { id: string }>(USER_QUERY, {
       id: this.id,
     });
     if (!data.user) throw new Error(`User not found: ${this.id}`);
-    return data.user;
+    return parseOrThrow("User", UserInfoSchema, data.user);
   }
 }

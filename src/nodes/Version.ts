@@ -1,4 +1,6 @@
 import { Node } from "./Node.js";
+import { parseOrThrow } from "../transport/validate.js";
+import { VersionInfoSchema } from "../schemas.js";
 import type { Model } from "./Model.js";
 import type { Speckle } from "../client.js";
 import type { VersionInfo } from "../types.js";
@@ -35,13 +37,13 @@ export class Version extends Node<VersionInfo> {
 
   protected async fetch(): Promise<VersionInfo> {
     const data = await this.speckle.http.request<
-      { project: { model: { version: VersionInfo } } },
+      { project: { model: { version: unknown } } },
       { projectId: string; modelId: string; versionId: string }
     >(VERSION_QUERY, {
       projectId: this.model.project.id,
       modelId: this.model.id,
       versionId: this.id,
     });
-    return data.project.model.version;
+    return parseOrThrow("Version", VersionInfoSchema, data.project.model.version);
   }
 }

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",
-    "module": "Preserve",
+    "module": "preserve",
     "moduleDetection": "force",
     "allowJs": true,
 
@@ -20,7 +20,12 @@
 
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src/**/*", "test/**/*", "codegen.ts"],
   "exclude": ["node_modules", "dist"]
