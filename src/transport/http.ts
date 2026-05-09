@@ -1,5 +1,6 @@
 import { GraphQLClient } from "graphql-request";
 import { SpeckleTransportError } from "./errors.js";
+import { bearer } from "./auth.js";
 
 export interface HttpClientOptions {
   endpoint: string;
@@ -15,7 +16,8 @@ export function createHttpClient(opts: HttpClientOptions): HttpClient {
     "content-type": "application/json",
     ...(opts.headers ?? {}),
   };
-  if (opts.token) headers["authorization"] = `Bearer ${opts.token}`;
+  const auth = bearer(opts.token);
+  if (auth) headers["authorization"] = auth;
 
   try {
     return new GraphQLClient(opts.endpoint, {

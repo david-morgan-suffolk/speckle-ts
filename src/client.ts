@@ -1,5 +1,6 @@
 import { createHttpClient, type HttpClient } from "./transport/http.js";
 import { createWsClient, disposeWsClient, type WsClient } from "./transport/ws.js";
+import { toHttpEndpoint, toWsEndpoint } from "./transport/url.js";
 import { Account } from "./nodes/Account.js";
 import { Project } from "./nodes/Project.js";
 import { User } from "./nodes/User.js";
@@ -13,17 +14,6 @@ export interface SpeckleOptions {
 }
 
 const DEFAULT_SERVER = "https://app.speckle.systems";
-
-function toHttpEndpoint(server: string): string {
-  return `${server.replace(/\/$/, "")}/graphql`;
-}
-
-function toWsEndpoint(server: string): string {
-  const trimmed = server.replace(/\/$/, "");
-  if (trimmed.startsWith("https://")) return `wss://${trimmed.slice("https://".length)}/graphql`;
-  if (trimmed.startsWith("http://")) return `ws://${trimmed.slice("http://".length)}/graphql`;
-  return `${trimmed}/graphql`;
-}
 
 export class Speckle {
   readonly server: string;

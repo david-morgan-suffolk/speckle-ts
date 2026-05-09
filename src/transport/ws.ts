@@ -1,5 +1,6 @@
 import { SubscriptionClient } from "subscriptions-transport-ws";
 import { SpeckleGraphQLError, SpeckleTransportError } from "./errors.js";
+import { bearer } from "./auth.js";
 
 export interface WsClientOptions {
   endpoint: string;
@@ -10,7 +11,7 @@ export interface WsClientOptions {
 export type WsClient = SubscriptionClient;
 
 export function createWsClient(opts: WsClientOptions): WsClient {
-  const auth = opts.token ? `Bearer ${opts.token}` : null;
+  const auth = bearer(opts.token);
   const params = auth ? { Authorization: auth, headers: { Authorization: auth } } : {};
   const Impl = (opts.webSocketImpl ?? globalThis.WebSocket) as unknown as new (
     url: string,
