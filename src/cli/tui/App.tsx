@@ -1,210 +1,124 @@
 import * as React from "react";
-import { useEffect, useState, useCallback } from "react";
 import { useKeyboard } from "@opentui/react";
-import { Speckle } from "@/client.js";
-import { getSdk } from "@/generated/sdk.js";
-import { loadCredentials } from "@/cli/auth.js";
 import { formatError } from "@/cli/format.js";
 import type { BuildSpeckleOptions } from "@/cli/client.js";
+import { useDashboard } from "./state.js";
+import { Header } from "./panels/Header.js";
+import { TreePanel } from "./panels/TreePanel.js";
+import { EventsPanel } from "./panels/EventsPanel.js";
+import { useSpinner } from "./hooks/useSpinner.js";
+import { ViewerPanel } from "./panels/ViewerPanel.js";
+import type { SubChannel } from "./subs/events.js";
 
-interface ProjectRow {
-  id: string;
-  name: string;
-  visibility: string;
-  role: string | null;
-  updatedAt: string;
-}
-
-interface ModelRow {
-  id: string;
-  name: string;
-  description: string | null;
-  updatedAt: string;
-}
-
-interface VersionRow {
-  id: string;
-  message: string | null;
-  authorName: string | null;
-  createdAt: string;
-}
-
-type Pane = "projects" | "models" | "versions";
+const SUB_KEYS: Record<string, SubChannel> = {
+  p: "project",
+  m: "models",
+  V: "versions",
+  o: "comments",
+};
 
 export function App(props: BuildSpeckleOptions): React.ReactNode {
-  const [error, setError] = useState<unknown>(null);
-  const [pane, setPane] = useState<Pane>("projects");
-  const [accountName, setAccountName] = useState<string>("...");
-  const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [models, setModels] = useState<ModelRow[]>([]);
-  const [versions, setVersions] = useState<VersionRow[]>([]);
-  const [projIdx, setProjIdx] = useState(0);
-  const [modelIdx, setModelIdx] = useState(0);
-  const [versionIdx, setVersionIdx] = useState(0);
-  const [speckle, setSpeckle] = useState<Speckle | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const creds = props.token
-          ? {
-              server: props.server ?? "https://app.speckle.systems",
-              token: props.token,
-            }
-          : loadCredentials(props.profile);
-        const sk = new Speckle({ server: creds.server, token: creds.token });
-        if (!active) {
-          await sk.dispose();
-          return;
-        }
-        setSpeckle(sk);
-        const account = await sk.account.get;
-        if (!active) return;
-        setAccountName(`${account.name}${account.role ? ` (${account.role})` : ""}`);
-        const sdk = getSdk(sk.http);
-        const data = await sdk.SearchProjects({ limit: 50 });
-        if (!active) return;
-        setProjects(data.activeUser?.projects.items ?? []);
-      } catch (err) {
-        if (active) setError(err);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [props.profile, props.server, props.token]);
-
-  const loadModels = useCallback(
-    async (projectId: string) => {
-      if (!speckle) return;
-      try {
-        const sdk = getSdk(speckle.http);
-        const data = await sdk.GetProjectModels({ projectId, limit: 50 });
-        setModels(data.project.models.items);
-        setModelIdx(0);
-      } catch (err) {
-        setError(err);
-      }
-    },
-    [speckle],
-  );
-
-  const loadVersions = useCallback(
-    async (projectId: string, modelId: string) => {
-      if (!speckle) return;
-      try {
-        const sdk = getSdk(speckle.http);
-        const data = await sdk.GetModelVersions({ projectId, modelId, limit: 50 });
-        setVersions(
-          data.project.model.versions.items.map((v) => ({
-            id: v.id,
-            message: v.message,
-            authorName: v.authorUser?.name ?? null,
-            createdAt: v.createdAt,
-          })),
-        );
-        setVersionIdx(0);
-      } catch (err) {
-        setError(err);
-      }
-    },
-    [speckle],
-  );
+  const dash = useDashboard(props);
+  const spinnerFrame = useSpinner(dash.loading.size > 0);
 
   useKeyboard(async (key) => {
-    if (key.name === "q" || key.name === "escape") {
-      if (pane === "projects" || key.name === "q") {
-        if (speckle) await speckle.dispose();
-        process.exit(0);
-      } else if (pane === "models") {
-        setPane("projects");
-      } else if (pane === "versions") {
-        setPane("models");
+    if (key.name === "q") {
+      await dash.dispose();
+      process.exit(0);
+    }
+    if (key.name === "tab") {
+      dash.toggleFocus();
+      return;
+    }
+    if (key.name === "1") {
+      dash.setFocus("tree");
+      return;
+    }
+    if (key.name === "2") {
+      dash.setFocus("events");
+      return;
+    }
+    if (key.name === "c") {
+      dash.clearEvents();
+      return;
+    }
+    if (key.name === "v") {
+      dash.toggleViewer();
+      return;
+    }
+    if (dash.focused === "tree") {
+      if (key.name === "up" || key.name === "k") return dash.moveCursor(-1);
+      if (key.name === "down" || key.name === "j") return dash.moveCursor(1);
+      if (key.name === "g") return dash.jumpCursor("top");
+      if (key.name === "G") return dash.jumpCursor("bottom");
+      if (key.name === "return" || key.name === "enter" || key.name === "right" || key.name === "l") {
+        await dash.toggleExpand();
+        return;
       }
-      return;
-    }
-    if (key.name === "up" || key.name === "k") {
-      if (pane === "projects") setProjIdx((i) => Math.max(0, i - 1));
-      else if (pane === "models") setModelIdx((i) => Math.max(0, i - 1));
-      else if (pane === "versions") setVersionIdx((i) => Math.max(0, i - 1));
-      return;
-    }
-    if (key.name === "down" || key.name === "j") {
-      if (pane === "projects") setProjIdx((i) => Math.min(projects.length - 1, i + 1));
-      else if (pane === "models") setModelIdx((i) => Math.min(models.length - 1, i + 1));
-      else if (pane === "versions")
-        setVersionIdx((i) => Math.min(versions.length - 1, i + 1));
-      return;
-    }
-    if (key.name === "return" || key.name === "enter") {
-      if (pane === "projects" && projects[projIdx]) {
-        await loadModels(projects[projIdx].id);
-        setPane("models");
-      } else if (pane === "models" && projects[projIdx] && models[modelIdx]) {
-        await loadVersions(projects[projIdx].id, models[modelIdx].id);
-        setPane("versions");
+      if (key.name === "left" || key.name === "h") {
+        dash.collapse();
+        return;
       }
+      const ch = SUB_KEYS[key.name];
+      if (ch) dash.toggleSub(ch);
+      return;
+    }
+    if (dash.focused === "events") {
+      if (key.name === "up" || key.name === "k") return dash.scrollEvents(1);
+      if (key.name === "down" || key.name === "j") return dash.scrollEvents(-1);
+      if (key.name === "g") return dash.jumpEvents("top");
+      if (key.name === "G") return dash.jumpEvents("bottom");
+      const ch = SUB_KEYS[key.name];
+      if (ch) dash.toggleSub(ch);
     }
   });
 
-  if (error) {
-    const f = formatError(error);
+  if (dash.error) {
+    const f = formatError(dash.error);
     return (
-      <box border padding={1}>
-        <text>{f.name}: {f.message}</text>
-        {f.cause ? <text>caused by: {f.cause.name}: {f.cause.message}</text> : null}
-        <text>(press q to quit)</text>
-      </box>
-    );
-  }
-
-  const header = `speckle — ${accountName}    [↑/↓ select  ⏎ drill   esc back  q quit]`;
-  let body: React.ReactNode;
-  if (pane === "projects") {
-    body = (
-      <box border padding={1} flexDirection="column">
-        <text>Projects ({projects.length})</text>
-        {projects.map((p, i) => (
-          <text key={p.id}>
-            {i === projIdx ? "▶ " : "  "}
-            {p.name}  ·  {p.visibility}  ·  {p.role ?? "-"}  ·  {p.id}
-          </text>
-        ))}
-      </box>
-    );
-  } else if (pane === "models") {
-    body = (
-      <box border padding={1} flexDirection="column">
-        <text>Models ({models.length}) — {projects[projIdx]?.name ?? ""}</text>
-        {models.map((m, i) => (
-          <text key={m.id}>
-            {i === modelIdx ? "▶ " : "  "}
-            {m.name}  ·  {m.id}
-          </text>
-        ))}
-      </box>
-    );
-  } else {
-    body = (
       <box border padding={1} flexDirection="column">
         <text>
-          Versions ({versions.length}) — {projects[projIdx]?.name ?? ""} / {models[modelIdx]?.name ?? ""}
+          {f.name}: {f.message}
         </text>
-        {versions.map((v, i) => (
-          <text key={v.id}>
-            {i === versionIdx ? "▶ " : "  "}
-            {v.id.slice(0, 8)}  ·  {v.message ?? "(no message)"}  ·  {v.authorName ?? "-"}  ·  {v.createdAt}
+        {f.cause ? (
+          <text>
+            caused by: {f.cause.name}: {f.cause.message}
           </text>
-        ))}
+        ) : null}
+        <text>(press q to quit)</text>
       </box>
     );
   }
 
   return (
     <box flexDirection="column">
-      <text>{header}</text>
-      {body}
+      <Header
+        server={dash.server}
+        account={dash.account}
+        wsStatus={dash.wsStatus}
+        focused={dash.focused}
+      />
+      <TreePanel
+        rows={dash.rows}
+        cursorIdx={dash.cursorIdx}
+        loading={dash.loading}
+        focused={dash.focused === "tree"}
+        spinnerFrame={spinnerFrame}
+      />
+      <EventsPanel
+        events={dash.events}
+        subs={dash.subs}
+        scrollOffset={dash.scrollOffset}
+        focused={dash.focused === "events"}
+      />
+      {dash.viewerOpen ? (
+        <ViewerPanel
+          target={dash.selectedVersion}
+          server={dash.server}
+          token={dash.token}
+          focused={false}
+        />
+      ) : null}
     </box>
   );
 }

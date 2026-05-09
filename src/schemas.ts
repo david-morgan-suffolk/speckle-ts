@@ -171,7 +171,7 @@ export const ModelsTreeItemSchema: z.ZodType<ModelsTreeItem> = z.lazy(() =>
     hasChildren: z.boolean(),
     updatedAt: z.string(),
     model: ModelInfoSchema.nullable(),
-    children: z.array(ModelsTreeItemSchema),
+    children: z.array(ModelsTreeItemSchema).optional().default([]),
   }),
 );
 
