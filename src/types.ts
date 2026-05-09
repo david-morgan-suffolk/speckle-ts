@@ -51,3 +51,19 @@ export interface PageInfo<T> {
   cursor: string | null;
   items: ReadonlyArray<T>;
 }
+
+export interface ModelsTreeItem {
+  id: string;
+  name: string;
+  fullName: string;
+  hasChildren: boolean;
+  updatedAt: string;
+  model: ModelInfo | null;
+  children: ModelsTreeItem[];
+}
+
+export interface ProjectModelsTreeFilterInput {
+  contributors?: string[];
+  search?: string;
+  sourceApps?: string[];
+}

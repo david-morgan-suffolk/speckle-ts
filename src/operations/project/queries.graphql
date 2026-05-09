@@ -27,6 +27,74 @@ query GetProjectModels($projectId: String!, $cursor: String, $limit: Int) {
   }
 }
 
+fragment ModelsTreeItemFields on ModelsTreeItem {
+  id
+  name
+  fullName
+  hasChildren
+  updatedAt
+  model {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+  children {
+    id
+    name
+    fullName
+    hasChildren
+    updatedAt
+    model {
+      id
+      name
+      description
+      createdAt
+      updatedAt
+    }
+    children {
+      id
+      name
+      fullName
+      hasChildren
+      updatedAt
+      model {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+
+query GetProjectModelsTree(
+  $projectId: String!
+  $cursor: String
+  $limit: Int
+  $filter: ProjectModelsTreeFilter
+) {
+  project(id: $projectId) {
+    modelsTree(cursor: $cursor, limit: $limit, filter: $filter) {
+      totalCount
+      cursor
+      items {
+        ...ModelsTreeItemFields
+      }
+    }
+  }
+}
+
+query GetModelChildrenTree($projectId: String!, $fullName: String!) {
+  project(id: $projectId) {
+    modelChildrenTree(fullName: $fullName) {
+      ...ModelsTreeItemFields
+    }
+  }
+}
+
 query SearchProjects($filter: UserProjectsFilter, $cursor: String, $limit: Int) {
   activeUser {
     projects(filter: $filter, cursor: $cursor, limit: $limit) {

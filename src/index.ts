@@ -29,6 +29,8 @@ export type {
   InsightRule,
   InsightFilterClause,
   PageInfo,
+  ModelsTreeItem,
+  ProjectModelsTreeFilterInput,
   TemplateModel,
   TemplateInsight,
   TemplateAutomation,
@@ -61,6 +63,9 @@ export {
   InsightRuleSchema,
   InsightFilterClauseSchema,
   PageInfoSchema,
+  ModelsTreeItemSchema,
+  ModelsTreeItemPageSchema,
+  ModelVersionsPageSchema,
   TemplateModelSchema,
   TemplateInsightSchema,
   TemplateAutomationSchema,
@@ -74,6 +79,9 @@ export {
   applyProjectTemplate,
   ProjectTemplateError,
   type ProjectTemplateStage,
+  extractProjectModelVersionsTree,
+  type ExtractProjectTreeOptions,
+  type ProjectModelVersionsTreeNode,
 } from "@/workflows/index.js";
 
 export { getSdk } from "@/generated/sdk.js";

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ModelsTreeItem } from "./types.js";
 
 export const ProjectInfoSchema = z.object({
   id: z.string(),
@@ -87,6 +88,22 @@ export function PageInfoSchema<T extends z.ZodTypeAny>(item: T) {
     items: z.array(item).readonly(),
   });
 }
+
+export const ModelsTreeItemSchema: z.ZodType<ModelsTreeItem> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    fullName: z.string(),
+    hasChildren: z.boolean(),
+    updatedAt: z.string(),
+    model: ModelInfoSchema.nullable(),
+    children: z.array(ModelsTreeItemSchema),
+  }),
+);
+
+export const ModelsTreeItemPageSchema = PageInfoSchema(ModelsTreeItemSchema);
+
+export const ModelVersionsPageSchema = PageInfoSchema(VersionInfoSchema);
 
 export const InsightFilterClauseSchema: z.ZodType<{
   op: string;

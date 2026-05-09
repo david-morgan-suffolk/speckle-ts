@@ -9102,6 +9102,26 @@ export type GetProjectModelsQueryVariables = Exact<{
 
 export type GetProjectModelsQuery = { __typename?: 'Query', project: { __typename?: 'Project', models: { __typename?: 'ModelCollection', totalCount: number, cursor: string | null, items: Array<{ __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string }> } } };
 
+export type ModelsTreeItemFieldsFragment = { __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null, children: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null, children: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null }> }> };
+
+export type GetProjectModelsTreeQueryVariables = Exact<{
+  projectId: Scalars['String']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  filter?: InputMaybe<ProjectModelsTreeFilter>;
+}>;
+
+
+export type GetProjectModelsTreeQuery = { __typename?: 'Query', project: { __typename?: 'Project', modelsTree: { __typename?: 'ModelsTreeItemCollection', totalCount: number, cursor: string | null, items: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null, children: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null, children: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null }> }> }> } } };
+
+export type GetModelChildrenTreeQueryVariables = Exact<{
+  projectId: Scalars['String']['input'];
+  fullName: Scalars['String']['input'];
+}>;
+
+
+export type GetModelChildrenTreeQuery = { __typename?: 'Query', project: { __typename?: 'Project', modelChildrenTree: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null, children: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null, children: Array<{ __typename?: 'ModelsTreeItem', id: string, name: string, fullName: string, hasChildren: boolean, updatedAt: string, model: { __typename?: 'Model', id: string, name: string, description: string | null, createdAt: string, updatedAt: string } | null }> }> }> } };
+
 export type SearchProjectsQueryVariables = Exact<{
   filter?: InputMaybe<UserProjectsFilter>;
   cursor?: InputMaybe<Scalars['String']['input']>;
@@ -9289,7 +9309,50 @@ export type OnWorkspaceUpdatedSubscriptionVariables = Exact<{
 
 export type OnWorkspaceUpdatedSubscription = { __typename?: 'Subscription', workspaceUpdated: { __typename?: 'WorkspaceUpdatedMessage', id: string, workspace: { __typename?: 'Workspace', id: string, name: string } } };
 
-
+export const ModelsTreeItemFieldsFragmentDoc = `
+    fragment ModelsTreeItemFields on ModelsTreeItem {
+  id
+  name
+  fullName
+  hasChildren
+  updatedAt
+  model {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+  children {
+    id
+    name
+    fullName
+    hasChildren
+    updatedAt
+    model {
+      id
+      name
+      description
+      createdAt
+      updatedAt
+    }
+    children {
+      id
+      name
+      fullName
+      hasChildren
+      updatedAt
+      model {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+    `;
 export const GetAccountDocument = `
     query GetAccount {
   activeUser {
@@ -9729,6 +9792,28 @@ export const GetProjectModelsDocument = `
   }
 }
     `;
+export const GetProjectModelsTreeDocument = `
+    query GetProjectModelsTree($projectId: String!, $cursor: String, $limit: Int, $filter: ProjectModelsTreeFilter) {
+  project(id: $projectId) {
+    modelsTree(cursor: $cursor, limit: $limit, filter: $filter) {
+      totalCount
+      cursor
+      items {
+        ...ModelsTreeItemFields
+      }
+    }
+  }
+}
+    ${ModelsTreeItemFieldsFragmentDoc}`;
+export const GetModelChildrenTreeDocument = `
+    query GetModelChildrenTree($projectId: String!, $fullName: String!) {
+  project(id: $projectId) {
+    modelChildrenTree(fullName: $fullName) {
+      ...ModelsTreeItemFields
+    }
+  }
+}
+    ${ModelsTreeItemFieldsFragmentDoc}`;
 export const SearchProjectsDocument = `
     query SearchProjects($filter: UserProjectsFilter, $cursor: String, $limit: Int) {
   activeUser {
@@ -10132,6 +10217,12 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     GetProjectModels(variables: GetProjectModelsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetProjectModelsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetProjectModelsQuery>({ document: GetProjectModelsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetProjectModels', 'query', variables);
+    },
+    GetProjectModelsTree(variables: GetProjectModelsTreeQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetProjectModelsTreeQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetProjectModelsTreeQuery>({ document: GetProjectModelsTreeDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetProjectModelsTree', 'query', variables);
+    },
+    GetModelChildrenTree(variables: GetModelChildrenTreeQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetModelChildrenTreeQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetModelChildrenTreeQuery>({ document: GetModelChildrenTreeDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetModelChildrenTree', 'query', variables);
     },
     SearchProjects(variables?: SearchProjectsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<SearchProjectsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<SearchProjectsQuery>({ document: SearchProjectsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'SearchProjects', 'query', variables);
