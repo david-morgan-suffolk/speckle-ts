@@ -1,5 +1,5 @@
 import { Node } from "./Node.js";
-import { parseOrThrow } from "../transport/validate.js";
+import { assertExists, parseOrThrow } from "../transport/validate.js";
 import { InsightTemplateInfoSchema } from "../schemas.js";
 import { z } from "zod";
 import type { Workspace } from "./Workspace.js";
@@ -52,8 +52,8 @@ export class InsightTemplate extends Node<InsightTemplateInfo> {
       { insightTemplate: unknown },
       { workspaceId: string; id: string }
     >(TEMPLATE_QUERY, { workspaceId: this.workspace.id, id: this.id });
-    if (!data.insightTemplate) throw new Error(`Insight template not found: ${this.id}`);
-    return parseOrThrow("InsightTemplate", InsightTemplateInfoSchema, data.insightTemplate);
+    const template = assertExists(data.insightTemplate, "InsightTemplate", this.id);
+    return parseOrThrow("InsightTemplate", InsightTemplateInfoSchema, template);
   }
 }
 

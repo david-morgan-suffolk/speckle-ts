@@ -1,5 +1,5 @@
 import { Node } from "./Node.js";
-import { parseOrThrow } from "../transport/validate.js";
+import { assertExists, parseOrThrow } from "../transport/validate.js";
 import { InsightInfoSchema, InsightResultSchema } from "../schemas.js";
 import { z } from "zod";
 import type { Project } from "./Project.js";
@@ -112,8 +112,8 @@ export class Insight extends Node<InsightInfo> {
       { insight: unknown },
       { projectId: string; id: string }
     >(INSIGHT_QUERY, { projectId: this.project.id, id: this.id });
-    if (!data.insight) throw new Error(`Insight not found: ${this.id}`);
-    return parseOrThrow("Insight", InsightInfoSchema, data.insight);
+    const insight = assertExists(data.insight, "Insight", this.id);
+    return parseOrThrow("Insight", InsightInfoSchema, insight);
   }
 
   async modelResults(modelId: string, limit?: number): Promise<InsightResult[]> {
@@ -126,8 +126,8 @@ export class Insight extends Node<InsightInfo> {
       modelId,
       ...(limit !== undefined ? { limit } : {}),
     });
-    if (!data.insight) throw new Error(`Insight not found: ${this.id}`);
-    return parseOrThrow("InsightModelResults", ResultListSchema, data.insight.modelResults);
+    const insight = assertExists(data.insight, "Insight", this.id);
+    return parseOrThrow("InsightModelResults", ResultListSchema, insight.modelResults);
   }
 
   async versionResults(modelId: string, versionId: string): Promise<InsightResult[]> {
@@ -140,8 +140,8 @@ export class Insight extends Node<InsightInfo> {
       modelId,
       versionId,
     });
-    if (!data.insight) throw new Error(`Insight not found: ${this.id}`);
-    return parseOrThrow("InsightVersionResults", ResultListSchema, data.insight.versionResults);
+    const insight = assertExists(data.insight, "Insight", this.id);
+    return parseOrThrow("InsightVersionResults", ResultListSchema, insight.versionResults);
   }
 
   async aggregateResults(limit?: number): Promise<InsightResult[]> {
@@ -153,8 +153,8 @@ export class Insight extends Node<InsightInfo> {
       id: this.id,
       ...(limit !== undefined ? { limit } : {}),
     });
-    if (!data.insight) throw new Error(`Insight not found: ${this.id}`);
-    return parseOrThrow("InsightAggregateResults", ResultListSchema, data.insight.aggregateResults);
+    const insight = assertExists(data.insight, "Insight", this.id);
+    return parseOrThrow("InsightAggregateResults", ResultListSchema, insight.aggregateResults);
   }
 }
 
