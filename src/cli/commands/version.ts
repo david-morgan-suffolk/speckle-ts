@@ -1,6 +1,5 @@
 import { defineCommand } from "citty";
-import { authArgs, output } from "@/cli/commands/_shared.js";
-import { buildSpeckle } from "@/cli/client.js";
+import { authArgs, output, withSpeckle } from "@/cli/commands/_shared.js";
 import { emit, table } from "@/cli/format.js";
 import { getSdk } from "@/generated/sdk.js";
 
@@ -14,12 +13,7 @@ const ls = defineCommand({
     cursor: { type: "string", description: "Pagination cursor" },
   },
   async run({ args }) {
-    const { speckle } = buildSpeckle({
-      profile: args.profile,
-      server: args.server,
-      token: args.token,
-    });
-    try {
+    await withSpeckle(args, async ({ speckle }) => {
       const sdk = getSdk(speckle.http);
       const limit = Number(args.limit);
       const data = await sdk.GetModelVersions({
@@ -44,9 +38,7 @@ const ls = defineCommand({
         );
         emit(`\n${items.length} of ${totalCount}${cursor ? ` (next cursor: ${cursor})` : ""}`, "text");
       }
-    } finally {
-      await speckle.dispose();
-    }
+    });
   },
 });
 

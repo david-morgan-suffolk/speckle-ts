@@ -1,6 +1,5 @@
 import { defineCommand } from "citty";
-import { authArgs, output } from "@/cli/commands/_shared.js";
-import { buildSpeckle } from "@/cli/client.js";
+import { authArgs, output, withSpeckle } from "@/cli/commands/_shared.js";
 import { emit, table } from "@/cli/format.js";
 
 const ls = defineCommand({
@@ -11,12 +10,7 @@ const ls = defineCommand({
     type: { type: "string", description: "Filter by insight type" },
   },
   async run({ args }) {
-    const { speckle } = buildSpeckle({
-      profile: args.profile,
-      server: args.server,
-      token: args.token,
-    });
-    try {
+    await withSpeckle(args, async ({ speckle }) => {
       const insights = await speckle.project(args.projectId).listInsights(args.type);
       if (output(args) === "json") {
         emit(insights, "json");
@@ -32,9 +26,7 @@ const ls = defineCommand({
           "text",
         );
       }
-    } finally {
-      await speckle.dispose();
-    }
+    });
   },
 });
 
@@ -52,12 +44,7 @@ const results = defineCommand({
     limit: { type: "string", description: "Max results (model + aggregate modes)" },
   },
   async run({ args }) {
-    const { speckle } = buildSpeckle({
-      profile: args.profile,
-      server: args.server,
-      token: args.token,
-    });
-    try {
+    await withSpeckle(args, async ({ speckle }) => {
       const insight = speckle.project(args.projectId).insight(args.insightId);
       const limit = args.limit ? Number(args.limit) : undefined;
       let payload;
@@ -85,9 +72,7 @@ const results = defineCommand({
           "text",
         );
       }
-    } finally {
-      await speckle.dispose();
-    }
+    });
   },
 });
 

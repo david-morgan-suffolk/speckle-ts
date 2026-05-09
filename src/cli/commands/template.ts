@@ -1,8 +1,7 @@
 import { defineCommand } from "citty";
 import { readFileSync } from "node:fs";
 import { extname, resolve } from "node:path";
-import { authArgs, output } from "@/cli/commands/_shared.js";
-import { buildSpeckle } from "@/cli/client.js";
+import { authArgs, output, withSpeckle } from "@/cli/commands/_shared.js";
 import { emit } from "@/cli/format.js";
 import { ProjectTemplateSpecSchema } from "@/schemas.js";
 import type { ProjectTemplateSpec } from "@/types.js";
@@ -42,36 +41,31 @@ const apply = defineCommand({
   },
   async run({ args }) {
     const spec = await loadSpec(args.spec);
-    const { speckle } = buildSpeckle({
-      profile: args.profile,
-      server: args.server,
-      token: args.token,
-    });
-    try {
-      const result = await applyProjectTemplate(speckle, spec);
-      if (output(args) === "json") {
-        emit(result, "json");
-      } else {
-        emit(`✓ project: ${result.projectId}`, "text");
-        emit(`  models:      ${Object.keys(result.modelIds).length}`, "text");
-        emit(`  insights:    ${result.insightIds.length}`, "text");
-        emit(`  automations: ${result.automationIds.length}`, "text");
-      }
-    } catch (err) {
-      if (err instanceof ProjectTemplateError) {
+    await withSpeckle(args, async ({ speckle }) => {
+      try {
+        const result = await applyProjectTemplate(speckle, spec);
         if (output(args) === "json") {
-          emit({ error: err.message, stage: err.stage, partial: err.partial }, "json");
+          emit(result, "json");
         } else {
-          console.error(`✗ stage=${err.stage}: ${err.message}`);
-          console.error("  partial:", JSON.stringify(err.partial, null, 2));
+          emit(`✓ project: ${result.projectId}`, "text");
+          emit(`  models:      ${Object.keys(result.modelIds).length}`, "text");
+          emit(`  insights:    ${result.insightIds.length}`, "text");
+          emit(`  automations: ${result.automationIds.length}`, "text");
         }
-        process.exitCode = 1;
-        return;
+      } catch (err) {
+        if (err instanceof ProjectTemplateError) {
+          if (output(args) === "json") {
+            emit({ error: err.message, stage: err.stage, partial: err.partial }, "json");
+          } else {
+            console.error(`✗ stage=${err.stage}: ${err.message}`);
+            console.error("  partial:", JSON.stringify(err.partial, null, 2));
+          }
+          process.exitCode = 1;
+          return;
+        }
+        throw err;
       }
-      throw err;
-    } finally {
-      await speckle.dispose();
-    }
+    });
   },
 });
 

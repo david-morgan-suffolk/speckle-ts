@@ -1,4 +1,7 @@
 import type { ArgsDef } from "citty";
+import type { Speckle } from "@/client.js";
+import type { ResolvedCredentials } from "@/cli/auth.js";
+import { buildSpeckle } from "@/cli/client.js";
 
 export const authArgs = {
   profile: {
@@ -29,4 +32,25 @@ export type AuthArgs = {
 
 export function output(args: { json?: boolean }): "text" | "json" {
   return args.json ? "json" : "text";
+}
+
+export interface SpeckleContext {
+  speckle: Speckle;
+  credentials: ResolvedCredentials;
+}
+
+export async function withSpeckle<T>(
+  args: AuthArgs,
+  handler: (ctx: SpeckleContext) => Promise<T>,
+): Promise<T> {
+  const built = buildSpeckle({
+    profile: args.profile,
+    server: args.server,
+    token: args.token,
+  });
+  try {
+    return await handler(built);
+  } finally {
+    await built.speckle.dispose();
+  }
 }
