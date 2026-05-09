@@ -8,6 +8,16 @@ import type {
   AccountPermissionsSchema,
   PermissionCheckSchema,
   WorkspaceInfoSchema,
+  WorkspaceLimitsSchema,
+  WorkspaceSyncUsageSchema,
+  WorkspaceUserCountSchema,
+  WorkspaceVersionCountSchema,
+  WorkspacePlanUsageSchema,
+  WorkspacePlanInfoSchema,
+  WorkspaceSubscriptionSeatCountSchema,
+  WorkspaceSubscriptionSeatsSchema,
+  WorkspaceSubscriptionAddOnSchema,
+  WorkspaceSubscriptionInfoSchema,
   InsightInfoSchema,
   InsightTemplateInfoSchema,
   InsightResultSchema,
@@ -31,6 +41,16 @@ export type AccountInfo = z.infer<typeof AccountInfoSchema>;
 export type AccountPermissions = z.infer<typeof AccountPermissionsSchema>;
 export type PermissionCheck = z.infer<typeof PermissionCheckSchema>;
 export type WorkspaceInfo = z.infer<typeof WorkspaceInfoSchema>;
+export type WorkspaceLimits = z.infer<typeof WorkspaceLimitsSchema>;
+export type WorkspaceSyncUsage = z.infer<typeof WorkspaceSyncUsageSchema>;
+export type WorkspaceUserCount = z.infer<typeof WorkspaceUserCountSchema>;
+export type WorkspaceVersionCount = z.infer<typeof WorkspaceVersionCountSchema>;
+export type WorkspacePlanUsage = z.infer<typeof WorkspacePlanUsageSchema>;
+export type WorkspacePlanInfo = z.infer<typeof WorkspacePlanInfoSchema>;
+export type WorkspaceSubscriptionSeatCount = z.infer<typeof WorkspaceSubscriptionSeatCountSchema>;
+export type WorkspaceSubscriptionSeats = z.infer<typeof WorkspaceSubscriptionSeatsSchema>;
+export type WorkspaceSubscriptionAddOn = z.infer<typeof WorkspaceSubscriptionAddOnSchema>;
+export type WorkspaceSubscriptionInfo = z.infer<typeof WorkspaceSubscriptionInfoSchema>;
 export type InsightInfo = z.infer<typeof InsightInfoSchema>;
 export type InsightTemplateInfo = z.infer<typeof InsightTemplateInfoSchema>;
 export type InsightResult = z.infer<typeof InsightResultSchema>;

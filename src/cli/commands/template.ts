@@ -5,7 +5,7 @@ import { authArgs, output, withSpeckle } from "@/cli/commands/_shared.js";
 import { emit } from "@/cli/format.js";
 import { ProjectTemplateSpecSchema } from "@/schemas.js";
 import type { ProjectTemplateSpec } from "@/types.js";
-import { applyProjectTemplate, ProjectTemplateError } from "@/workflows/index.js";
+import { applyProjectTemplate } from "@/workflows/index.js";
 
 async function loadSpec(path: string): Promise<ProjectTemplateSpec> {
   const abs = resolve(process.cwd(), path);
@@ -42,29 +42,15 @@ const apply = defineCommand({
   async run({ args }) {
     const spec = await loadSpec(args.spec);
     await withSpeckle(args, async ({ speckle }) => {
-      try {
-        const result = await applyProjectTemplate(speckle, spec);
-        if (output(args) === "json") {
-          emit(result, "json");
-        } else {
-          emit(`✓ project: ${result.projectId}`, "text");
-          emit(`  models:      ${Object.keys(result.modelIds).length}`, "text");
-          emit(`  insights:    ${result.insightIds.length}`, "text");
-          emit(`  automations: ${result.automationIds.length}`, "text");
-        }
-      } catch (err) {
-        if (err instanceof ProjectTemplateError) {
-          if (output(args) === "json") {
-            emit({ error: err.message, stage: err.stage, partial: err.partial }, "json");
-          } else {
-            console.error(`✗ stage=${err.stage}: ${err.message}`);
-            console.error("  partial:", JSON.stringify(err.partial, null, 2));
-          }
-          process.exitCode = 1;
-          return;
-        }
-        throw err;
+      const result = await applyProjectTemplate(speckle, spec);
+      if (output(args) === "json") {
+        emit(result, "json");
+        return;
       }
+      emit(`✓ project: ${result.projectId}`, "text");
+      emit(`  models:      ${Object.keys(result.modelIds).length}`, "text");
+      emit(`  insights:    ${result.insightIds.length}`, "text");
+      emit(`  automations: ${result.automationIds.length}`, "text");
     });
   },
 });

@@ -1,4 +1,10 @@
 import type { AccountInfo, PermissionCheck } from "@/types.js";
+import {
+  SpeckleGraphQLError,
+  SpeckleTransportError,
+  SpeckleValidationError,
+} from "@/transport/errors.js";
+import { ProjectTemplateError } from "@/workflows/projectTemplate.js";
 
 export type Output = "text" | "json";
 
@@ -9,6 +15,82 @@ export function emit(value: unknown, output: Output): void {
     process.stdout.write(value + "\n");
   } else {
     process.stdout.write(JSON.stringify(value, null, 2) + "\n");
+  }
+}
+
+export interface FormattedError {
+  name: string;
+  message: string;
+  stage?: string;
+  status?: number;
+  issues?: ReadonlyArray<{ path: string; message: string }>;
+  partial?: unknown;
+  graphqlErrors?: ReadonlyArray<{ message: string; path?: ReadonlyArray<string | number> }>;
+  cause?: { name: string; message: string };
+}
+
+export function formatError(err: unknown): FormattedError {
+  if (err instanceof ProjectTemplateError) {
+    return {
+      name: err.name,
+      message: err.message,
+      stage: err.stage,
+      partial: err.partial,
+      ...(err.cause !== undefined ? { cause: causeOf(err.cause) } : {}),
+    };
+  }
+  if (err instanceof SpeckleGraphQLError) {
+    return {
+      name: err.name,
+      message: err.message,
+      graphqlErrors: err.errors.map((e) => ({
+        message: e.message,
+        ...(e.path ? { path: e.path } : {}),
+      })),
+    };
+  }
+  if (err instanceof SpeckleTransportError) {
+    return {
+      name: err.name,
+      message: err.message,
+      ...(err.status !== undefined ? { status: err.status } : {}),
+      ...(err.cause !== undefined ? { cause: causeOf(err.cause) } : {}),
+    };
+  }
+  if (err instanceof SpeckleValidationError) {
+    return {
+      name: err.name,
+      message: err.message,
+      issues: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    };
+  }
+  if (err instanceof Error) {
+    return {
+      name: err.name,
+      message: err.message,
+      ...(err.cause !== undefined ? { cause: causeOf(err.cause) } : {}),
+    };
+  }
+  return { name: "UnknownError", message: String(err) };
+}
+
+function causeOf(cause: unknown): { name: string; message: string } {
+  if (cause instanceof Error) return { name: cause.name, message: cause.message };
+  return { name: "UnknownError", message: String(cause) };
+}
+
+export function emitError(err: unknown, output: Output): void {
+  const formatted = formatError(err);
+  if (output === "json") {
+    process.stderr.write(JSON.stringify(formatted, null, 2) + "\n");
+    return;
+  }
+  const head = formatted.stage
+    ? `✗ ${formatted.name} [${formatted.stage}]: ${formatted.message}`
+    : `✗ ${formatted.name}: ${formatted.message}`;
+  process.stderr.write(head + "\n");
+  if (formatted.cause) {
+    process.stderr.write(`  caused by: ${formatted.cause.name}: ${formatted.cause.message}\n`);
   }
 }
 

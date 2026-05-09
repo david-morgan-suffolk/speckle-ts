@@ -4,6 +4,7 @@ import { useKeyboard } from "@opentui/react";
 import { Speckle } from "@/client.js";
 import { getSdk } from "@/generated/sdk.js";
 import { loadCredentials } from "@/cli/auth.js";
+import { formatError } from "@/cli/format.js";
 import type { BuildSpeckleOptions } from "@/cli/client.js";
 
 interface ProjectRow {
@@ -31,7 +32,7 @@ interface VersionRow {
 type Pane = "projects" | "models" | "versions";
 
 export function App(props: BuildSpeckleOptions): React.ReactNode {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [pane, setPane] = useState<Pane>("projects");
   const [accountName, setAccountName] = useState<string>("...");
   const [projects, setProjects] = useState<ProjectRow[]>([]);
@@ -66,7 +67,7 @@ export function App(props: BuildSpeckleOptions): React.ReactNode {
         if (!active) return;
         setProjects(data.activeUser?.projects.items ?? []);
       } catch (err) {
-        if (active) setError((err as Error).message);
+        if (active) setError(err);
       }
     })();
     return () => {
@@ -83,7 +84,7 @@ export function App(props: BuildSpeckleOptions): React.ReactNode {
         setModels(data.project.models.items);
         setModelIdx(0);
       } catch (err) {
-        setError((err as Error).message);
+        setError(err);
       }
     },
     [speckle],
@@ -105,7 +106,7 @@ export function App(props: BuildSpeckleOptions): React.ReactNode {
         );
         setVersionIdx(0);
       } catch (err) {
-        setError((err as Error).message);
+        setError(err);
       }
     },
     [speckle],
@@ -148,9 +149,11 @@ export function App(props: BuildSpeckleOptions): React.ReactNode {
   });
 
   if (error) {
+    const f = formatError(error);
     return (
       <box border padding={1}>
-        <text>error: {error}</text>
+        <text>{f.name}: {f.message}</text>
+        {f.cause ? <text>caused by: {f.cause.name}: {f.cause.message}</text> : null}
         <text>(press q to quit)</text>
       </box>
     );

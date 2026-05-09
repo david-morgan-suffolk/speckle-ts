@@ -5,6 +5,7 @@ query GetWorkspace($id: String!) {
     slug
     description
     createdAt
+    readOnly
   }
 }
 
@@ -19,6 +20,136 @@ query ListWorkspaces($cursor: String, $limit: Int) {
         slug
         description
       }
+    }
+  }
+}
+
+fragment WorkspaceLimitsFields on WorkspaceLimits {
+  commentsHistoryInDays
+  dashboardCount
+  modelCount
+  projectCount
+  userCount
+  versionCount
+  versionsHistoryInDays
+}
+
+fragment WorkspacePlanUsageFields on WorkspacePlanUsage {
+  dashboardCount
+  projectCount
+  sync {
+    versionSyncsMonthly
+    versionSyncsTotal
+    versionsLoadedMonthly
+    versionsLoadedTotal
+    versionsPublishedMonthly
+    versionsPublishedTotal
+  }
+  users {
+    pendingUserCount
+    userCount
+  }
+  versions {
+    pendingVersionCount
+    versionCount
+  }
+}
+
+fragment WorkspaceSubscriptionSeatsFields on WorkspaceSubscriptionSeats {
+  editors {
+    assigned
+    available
+  }
+  viewers {
+    assigned
+    available
+  }
+}
+
+fragment WorkspacePlanFields on WorkspacePlan {
+  createdAt
+  features
+  limitOverrides
+  limits {
+    ...WorkspaceLimitsFields
+  }
+  name
+  paymentMethod
+  status
+  usage {
+    ...WorkspacePlanUsageFields
+  }
+  validUntil
+}
+
+fragment WorkspaceSubscriptionFields on WorkspaceSubscription {
+  addOn {
+    currentQuantity
+  }
+  billingInterval
+  createdAt
+  currency
+  currentBillingCycleEnd
+  seats {
+    ...WorkspaceSubscriptionSeatsFields
+  }
+  updatedAt
+}
+
+query GetWorkspacePlan($id: String!) {
+  workspace(id: $id) {
+    plan {
+      ...WorkspacePlanFields
+    }
+  }
+}
+
+query GetWorkspaceLimits($id: String!) {
+  workspace(id: $id) {
+    plan {
+      limits {
+        ...WorkspaceLimitsFields
+      }
+    }
+  }
+}
+
+query GetWorkspaceUsage($id: String!) {
+  workspace(id: $id) {
+    plan {
+      usage {
+        ...WorkspacePlanUsageFields
+      }
+    }
+  }
+}
+
+query GetWorkspaceSubscription($id: String!) {
+  workspace(id: $id) {
+    subscription {
+      ...WorkspaceSubscriptionFields
+    }
+  }
+}
+
+query GetWorkspaceSeats($id: String!) {
+  workspace(id: $id) {
+    seats {
+      ...WorkspaceSubscriptionSeatsFields
+    }
+  }
+}
+
+query GetWorkspaceBilling($id: String!) {
+  workspace(id: $id) {
+    plan {
+      ...WorkspacePlanFields
+    }
+    subscription {
+      ...WorkspaceSubscriptionFields
+    }
+    seats {
+      ...WorkspaceSubscriptionSeatsFields
     }
   }
 }

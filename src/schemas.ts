@@ -79,6 +79,80 @@ export const WorkspaceInfoSchema = z.object({
   slug: z.string(),
   description: z.string().nullable(),
   createdAt: z.string(),
+  readOnly: z.boolean(),
+});
+
+export const WorkspaceLimitsSchema = z.object({
+  commentsHistoryInDays: z.number().nullable(),
+  dashboardCount: z.number().nullable(),
+  modelCount: z.number().nullable(),
+  projectCount: z.number().nullable(),
+  userCount: z.number().nullable(),
+  versionCount: z.number().nullable(),
+  versionsHistoryInDays: z.number().nullable(),
+});
+
+export const WorkspaceSyncUsageSchema = z.object({
+  versionSyncsMonthly: z.number(),
+  versionSyncsTotal: z.number(),
+  versionsLoadedMonthly: z.number(),
+  versionsLoadedTotal: z.number(),
+  versionsPublishedMonthly: z.number(),
+  versionsPublishedTotal: z.number(),
+});
+
+export const WorkspaceUserCountSchema = z.object({
+  pendingUserCount: z.number(),
+  userCount: z.number(),
+});
+
+export const WorkspaceVersionCountSchema = z.object({
+  pendingVersionCount: z.number(),
+  versionCount: z.number(),
+});
+
+export const WorkspacePlanUsageSchema = z.object({
+  dashboardCount: z.number(),
+  projectCount: z.number(),
+  sync: WorkspaceSyncUsageSchema,
+  users: WorkspaceUserCountSchema,
+  versions: WorkspaceVersionCountSchema,
+});
+
+export const WorkspacePlanInfoSchema = z.object({
+  createdAt: z.string(),
+  features: z.array(z.string()),
+  limitOverrides: z.record(z.string(), z.unknown()).nullable(),
+  limits: WorkspaceLimitsSchema,
+  name: z.string(),
+  paymentMethod: z.string(),
+  status: z.string(),
+  usage: WorkspacePlanUsageSchema,
+  validUntil: z.string().nullable(),
+});
+
+export const WorkspaceSubscriptionSeatCountSchema = z.object({
+  assigned: z.number(),
+  available: z.number(),
+});
+
+export const WorkspaceSubscriptionSeatsSchema = z.object({
+  editors: WorkspaceSubscriptionSeatCountSchema,
+  viewers: WorkspaceSubscriptionSeatCountSchema,
+});
+
+export const WorkspaceSubscriptionAddOnSchema = z.object({
+  currentQuantity: z.number(),
+});
+
+export const WorkspaceSubscriptionInfoSchema = z.object({
+  addOn: WorkspaceSubscriptionAddOnSchema,
+  billingInterval: z.string(),
+  createdAt: z.string(),
+  currency: z.string(),
+  currentBillingCycleEnd: z.string(),
+  seats: WorkspaceSubscriptionSeatsSchema,
+  updatedAt: z.string(),
 });
 
 export function PageInfoSchema<T extends z.ZodTypeAny>(item: T) {

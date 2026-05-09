@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 import { Speckle } from "@/client.js";
 import { saveCredentials, clearCredentials, listProfiles } from "@/cli/auth.js";
+import { emit } from "@/cli/format.js";
 
 const login = defineCommand({
   meta: { name: "login", description: "Save a Speckle token to ~/.speckle/config.json" },
@@ -16,13 +17,10 @@ const login = defineCommand({
       const sk = new Speckle({ server: args.server, token: args.token });
       try {
         const account = await sk.account.get;
-        console.log(`✓ token valid (account: ${account.name})`);
-      } catch (err) {
-        console.error("✗ token validation failed:", (err as Error).message);
+        emit(`✓ token valid (account: ${account.name})`, "text");
+      } finally {
         await sk.dispose();
-        process.exit(1);
       }
-      await sk.dispose();
     }
     const result = saveCredentials({
       profile: args.profile,
@@ -30,7 +28,7 @@ const login = defineCommand({
       token: args.token,
       setDefault: args.setDefault,
     });
-    console.log(`✓ saved profile "${result.profile}" → ${result.configFile}`);
+    emit(`✓ saved profile "${result.profile}" → ${result.configFile}`, "text");
   },
 });
 
@@ -41,11 +39,7 @@ const logout = defineCommand({
   },
   async run({ args }) {
     const result = clearCredentials(args.profile);
-    if (result.removed) {
-      console.log(`✓ removed profile "${result.removed}"`);
-    } else {
-      console.log("nothing to remove");
-    }
+    emit(result.removed ? `✓ removed profile "${result.removed}"` : "nothing to remove", "text");
   },
 });
 
@@ -54,11 +48,11 @@ const list = defineCommand({
   async run() {
     const { default: def, profiles } = listProfiles();
     if (profiles.length === 0) {
-      console.log("no profiles saved");
+      emit("no profiles saved", "text");
       return;
     }
     for (const name of profiles) {
-      console.log(`${name === def ? "* " : "  "}${name}`);
+      emit(`${name === def ? "* " : "  "}${name}`, "text");
     }
   },
 });

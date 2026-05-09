@@ -50,8 +50,8 @@ export class User extends Node<UserInfo> {
   protected async fetch(): Promise<UserInfo> {
     if (this.id === null) {
       const data = await this.speckle.http.request<{ activeUser: unknown }>(ACTIVE_USER_QUERY);
-      if (!data.activeUser) throw new Error("No active user — token missing or invalid");
-      return parseOrThrow("ActiveUser", UserInfoSchema, data.activeUser);
+      const user = assertExists(data.activeUser, "ActiveUser");
+      return parseOrThrow("ActiveUser", UserInfoSchema, user);
     }
     const data = await this.speckle.http.request<{ user: unknown }, { id: string }>(USER_QUERY, {
       id: this.id,

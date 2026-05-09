@@ -1,5 +1,12 @@
 import { test, expect } from "bun:test";
-import { table, renderAccount } from "../../src/cli/format.js";
+import { z } from "zod";
+import { table, renderAccount, formatError } from "../../src/cli/format.js";
+import {
+  SpeckleGraphQLError,
+  SpeckleTransportError,
+  SpeckleValidationError,
+} from "../../src/transport/errors.js";
+import { ProjectTemplateError } from "../../src/workflows/projectTemplate.js";
 import type { AccountInfo } from "../../src/types.js";
 
 test("table renders aligned columns and a header separator", () => {
@@ -51,4 +58,47 @@ test("renderAccount includes server, account fields, and permission marks", () =
   expect(out).toContain("✓ canAccessServerAdminPanel");
   expect(out).toContain("✗ canCreatePersonalProject");
   expect(out).toContain("(FORBIDDEN: nope)");
+});
+
+test("formatError unwraps ProjectTemplateError with stage and partial", () => {
+  const cause = new Error("downstream boom");
+  const err = new ProjectTemplateError("createModel", `Model "site" creation failed`, { projectId: "p1" }, cause);
+  const out = formatError(err);
+  expect(out.name).toBe("ProjectTemplateError");
+  expect(out.stage).toBe("createModel");
+  expect(out.partial).toEqual({ projectId: "p1" });
+  expect(out.cause).toEqual({ name: "Error", message: "downstream boom" });
+});
+
+test("formatError narrows SpeckleGraphQLError to graphqlErrors list", () => {
+  const err = new SpeckleGraphQLError([{ message: "nope", path: ["a", 0] }]);
+  const out = formatError(err);
+  expect(out.name).toBe("SpeckleGraphQLError");
+  expect(out.graphqlErrors).toEqual([{ message: "nope", path: ["a", 0] }]);
+});
+
+test("formatError narrows SpeckleTransportError with status and cause", () => {
+  const cause = new Error("connect refused");
+  const err = new SpeckleTransportError("HTTP failed", { status: 502, cause });
+  const out = formatError(err);
+  expect(out.name).toBe("SpeckleTransportError");
+  expect(out.status).toBe(502);
+  expect(out.cause).toEqual({ name: "Error", message: "connect refused" });
+});
+
+test("formatError narrows SpeckleValidationError to issues list", () => {
+  const zerr = z.string().safeParse(123);
+  if (zerr.success) throw new Error("expected zod error");
+  const err = new SpeckleValidationError("X", zerr.error);
+  const out = formatError(err);
+  expect(out.name).toBe("SpeckleValidationError");
+  expect(out.issues?.length).toBeGreaterThan(0);
+});
+
+test("formatError handles plain Error and unknown", () => {
+  expect(formatError(new Error("plain"))).toMatchObject({ name: "Error", message: "plain" });
+  expect(formatError("string thrown")).toMatchObject({
+    name: "UnknownError",
+    message: "string thrown",
+  });
 });

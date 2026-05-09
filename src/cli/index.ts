@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { defineCommand, runMain } from "citty";
+import { defineCommand, runCommand, showUsage } from "citty";
 import { fileURLToPath } from "node:url";
 import auth from "@/cli/commands/auth.js";
 import account from "@/cli/commands/account.js";
@@ -9,6 +9,7 @@ import version from "@/cli/commands/version.js";
 import insight from "@/cli/commands/insight.js";
 import template from "@/cli/commands/template.js";
 import { authArgs } from "@/cli/commands/_shared.js";
+import { emitError } from "@/cli/format.js";
 
 const tui = defineCommand({
   meta: { name: "tui", description: "Launch interactive terminal UI (requires opentui)" },
@@ -18,10 +19,10 @@ const tui = defineCommand({
     try {
       mod = await import("@/cli/tui/index.js");
     } catch (err) {
-      console.error("✗ TUI dependencies not installed.");
-      console.error("  Install with: bun add @opentui/core @opentui/react react");
-      console.error("  Original error:", (err as Error).message);
-      process.exit(1);
+      throw new Error(
+        "TUI dependencies not installed. Install: bun add @opentui/core @opentui/react react",
+        { cause: err },
+      );
     }
     await mod.run({
       profile: args.profile,
@@ -48,5 +49,20 @@ const isEntry =
   fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isEntry) {
-  runMain(main);
+  const rawArgs = process.argv.slice(2);
+  const isJson = rawArgs.includes("--json");
+  (async () => {
+    if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
+      await showUsage(main);
+      return;
+    }
+    if (rawArgs.length === 1 && rawArgs[0] === "--version") {
+      process.stdout.write((main.meta as { version?: string }).version + "\n");
+      return;
+    }
+    await runCommand(main, { rawArgs });
+  })().catch((err) => {
+    emitError(err, isJson ? "json" : "text");
+    process.exit(1);
+  });
 }
