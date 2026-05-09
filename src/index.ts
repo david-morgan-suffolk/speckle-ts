@@ -6,6 +6,7 @@ export { Project } from "@/nodes/Project.js";
 export { Model } from "@/nodes/Model.js";
 export { Version } from "@/nodes/Version.js";
 export { User } from "@/nodes/User.js";
+export { Account } from "@/nodes/Account.js";
 export { Workspace } from "@/nodes/Workspace.js";
 export { Insight } from "@/nodes/Insight.js";
 export { InsightTemplate } from "@/nodes/InsightTemplate.js";
@@ -15,6 +16,9 @@ export type {
   ModelInfo,
   VersionInfo,
   UserInfo,
+  AccountInfo,
+  AccountPermissions,
+  PermissionCheck,
   WorkspaceInfo,
   InsightInfo,
   InsightTemplateInfo,
@@ -25,6 +29,11 @@ export type {
   InsightRule,
   InsightFilterClause,
   PageInfo,
+  TemplateModel,
+  TemplateInsight,
+  TemplateAutomation,
+  ProjectTemplateSpec,
+  ProjectTemplateResult,
 } from "@/types.js";
 
 export {
@@ -39,6 +48,9 @@ export {
   ModelInfoSchema,
   VersionInfoSchema,
   UserInfoSchema,
+  AccountInfoSchema,
+  AccountPermissionsSchema,
+  PermissionCheckSchema,
   WorkspaceInfoSchema,
   InsightInfoSchema,
   InsightTemplateInfoSchema,
@@ -49,9 +61,20 @@ export {
   InsightRuleSchema,
   InsightFilterClauseSchema,
   PageInfoSchema,
+  TemplateModelSchema,
+  TemplateInsightSchema,
+  TemplateAutomationSchema,
+  ProjectTemplateSpecSchema,
+  ProjectTemplateResultSchema,
 } from "@/schemas.js";
 
 export * as transforms from "@/transforms/index.js";
+
+export {
+  applyProjectTemplate,
+  ProjectTemplateError,
+  type ProjectTemplateStage,
+} from "@/workflows/index.js";
 
 export { getSdk } from "@/generated/sdk.js";
 export type { Sdk } from "@/generated/sdk.js";

@@ -8865,6 +8865,11 @@ export type WorkspaceVersionCount = {
   versionCount: Scalars['Int']['output'];
 };
 
+export type GetAccountQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetAccountQuery = { __typename?: 'Query', activeUser: { __typename?: 'User', id: string, name: string, email: string | null, role: string | null, verified: boolean | null, hasPendingVerification: boolean | null, isOnboardingFinished: boolean | null, permissions: { __typename?: 'RootPermissionChecks', canAccessServerAdminPanel: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canCreatePersonalProject: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canCreateWorkspace: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canManageServerRegions: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canManageServerUsers: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canManageServerWorkspaces: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canSupportServerUsers: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canUpdateServerSettings: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canUsePowerTools: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string } } } | null };
+
 export type CreateApiTokenMutationVariables = Exact<{
   token: ApiTokenCreateInput;
 }>;
@@ -9006,6 +9011,20 @@ export type ListProjectFileImportsQueryVariables = Exact<{
 
 
 export type ListProjectFileImportsQuery = { __typename?: 'Query', project: { __typename?: 'Project', pendingImportedModels: Array<{ __typename?: 'FileUpload', id: string, modelName: string, convertedStatus: number, uploadDate: string }> } };
+
+export type CreateInsightMutationVariables = Exact<{
+  input: InsightCreateInput;
+}>;
+
+
+export type CreateInsightMutation = { __typename?: 'Mutation', insightMutations: { __typename?: 'InsightMutations', create: { __typename?: 'Insight', id: string, name: string, type: string, version: number, projectId: string, modelIds: Array<string> } } };
+
+export type CreateInsightFromTemplateMutationVariables = Exact<{
+  input: CreateFromTemplateInput;
+}>;
+
+
+export type CreateInsightFromTemplateMutation = { __typename?: 'Mutation', insightMutations: { __typename?: 'InsightMutations', createFromTemplate: { __typename?: 'Insight', id: string, name: string, type: string, version: number, templateVersion: number | null, projectId: string, modelIds: Array<string> } } };
 
 export type CreateModelMutationVariables = Exact<{
   input: CreateModelInput;
@@ -9240,6 +9259,13 @@ export type InviteToWorkspaceMutationVariables = Exact<{
 
 export type InviteToWorkspaceMutation = { __typename?: 'Mutation', workspaceMutations: { __typename?: 'WorkspaceMutations', invites: { __typename?: 'WorkspaceInviteMutations', create: { __typename?: 'Workspace', id: string } } } };
 
+export type CreateWorkspaceProjectMutationVariables = Exact<{
+  input: WorkspaceProjectCreateInput;
+}>;
+
+
+export type CreateWorkspaceProjectMutation = { __typename?: 'Mutation', workspaceMutations: { __typename?: 'WorkspaceMutations', projects: { __typename?: 'WorkspaceProjectMutations', create: { __typename?: 'Project', id: string, name: string, visibility: ProjectVisibility, workspaceId: string | null } } } };
+
 export type GetWorkspaceQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
@@ -9264,6 +9290,66 @@ export type OnWorkspaceUpdatedSubscriptionVariables = Exact<{
 export type OnWorkspaceUpdatedSubscription = { __typename?: 'Subscription', workspaceUpdated: { __typename?: 'WorkspaceUpdatedMessage', id: string, workspace: { __typename?: 'Workspace', id: string, name: string } } };
 
 
+export const GetAccountDocument = `
+    query GetAccount {
+  activeUser {
+    id
+    name
+    email
+    role
+    verified
+    hasPendingVerification
+    isOnboardingFinished
+    permissions {
+      canAccessServerAdminPanel {
+        authorized
+        code
+        message
+      }
+      canCreatePersonalProject {
+        authorized
+        code
+        message
+      }
+      canCreateWorkspace {
+        authorized
+        code
+        message
+      }
+      canManageServerRegions {
+        authorized
+        code
+        message
+      }
+      canManageServerUsers {
+        authorized
+        code
+        message
+      }
+      canManageServerWorkspaces {
+        authorized
+        code
+        message
+      }
+      canSupportServerUsers {
+        authorized
+        code
+        message
+      }
+      canUpdateServerSettings {
+        authorized
+        code
+        message
+      }
+      canUsePowerTools {
+        authorized
+        code
+        message
+      }
+    }
+  }
+}
+    `;
 export const CreateApiTokenDocument = `
     mutation CreateApiToken($token: ApiTokenCreateInput!) {
   apiTokenCreate(token: $token)
@@ -9484,6 +9570,35 @@ export const ListProjectFileImportsDocument = `
       modelName
       convertedStatus
       uploadDate
+    }
+  }
+}
+    `;
+export const CreateInsightDocument = `
+    mutation CreateInsight($input: InsightCreateInput!) {
+  insightMutations {
+    create(input: $input) {
+      id
+      name
+      type
+      version
+      projectId
+      modelIds
+    }
+  }
+}
+    `;
+export const CreateInsightFromTemplateDocument = `
+    mutation CreateInsightFromTemplate($input: CreateFromTemplateInput!) {
+  insightMutations {
+    createFromTemplate(input: $input) {
+      id
+      name
+      type
+      version
+      templateVersion
+      projectId
+      modelIds
     }
   }
 }
@@ -9862,6 +9977,20 @@ export const InviteToWorkspaceDocument = `
   }
 }
     `;
+export const CreateWorkspaceProjectDocument = `
+    mutation CreateWorkspaceProject($input: WorkspaceProjectCreateInput!) {
+  workspaceMutations {
+    projects {
+      create(input: $input) {
+        id
+        name
+        visibility
+        workspaceId
+      }
+    }
+  }
+}
+    `;
 export const GetWorkspaceDocument = `
     query GetWorkspace($id: String!) {
   workspace(id: $id) {
@@ -9908,6 +10037,9 @@ const defaultWrapper: SdkFunctionWrapper = (action, _operationName, _operationTy
 
 export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = defaultWrapper) {
   return {
+    GetAccount(variables?: GetAccountQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetAccountQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetAccountQuery>({ document: GetAccountDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetAccount', 'query', variables);
+    },
     CreateApiToken(variables: CreateApiTokenMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<CreateApiTokenMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<CreateApiTokenMutation>({ document: CreateApiTokenDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'CreateApiToken', 'mutation', variables);
     },
@@ -9964,6 +10096,12 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     ListProjectFileImports(variables: ListProjectFileImportsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<ListProjectFileImportsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<ListProjectFileImportsQuery>({ document: ListProjectFileImportsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'ListProjectFileImports', 'query', variables);
+    },
+    CreateInsight(variables: CreateInsightMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<CreateInsightMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<CreateInsightMutation>({ document: CreateInsightDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'CreateInsight', 'mutation', variables);
+    },
+    CreateInsightFromTemplate(variables: CreateInsightFromTemplateMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<CreateInsightFromTemplateMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<CreateInsightFromTemplateMutation>({ document: CreateInsightFromTemplateDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'CreateInsightFromTemplate', 'mutation', variables);
     },
     CreateModel(variables: CreateModelMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<CreateModelMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<CreateModelMutation>({ document: CreateModelDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'CreateModel', 'mutation', variables);
@@ -10060,6 +10198,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     InviteToWorkspace(variables: InviteToWorkspaceMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<InviteToWorkspaceMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<InviteToWorkspaceMutation>({ document: InviteToWorkspaceDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'InviteToWorkspace', 'mutation', variables);
+    },
+    CreateWorkspaceProject(variables: CreateWorkspaceProjectMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<CreateWorkspaceProjectMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<CreateWorkspaceProjectMutation>({ document: CreateWorkspaceProjectDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'CreateWorkspaceProject', 'mutation', variables);
     },
     GetWorkspace(variables: GetWorkspaceQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspaceQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspaceQuery>({ document: GetWorkspaceDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspace', 'query', variables);

@@ -43,6 +43,35 @@ export const UserInfoSchema = z.object({
   createdAt: z.string(),
 });
 
+export const PermissionCheckSchema = z.object({
+  authorized: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+});
+
+export const AccountPermissionsSchema = z.object({
+  canAccessServerAdminPanel: PermissionCheckSchema,
+  canCreatePersonalProject: PermissionCheckSchema,
+  canCreateWorkspace: PermissionCheckSchema,
+  canManageServerRegions: PermissionCheckSchema,
+  canManageServerUsers: PermissionCheckSchema,
+  canManageServerWorkspaces: PermissionCheckSchema,
+  canSupportServerUsers: PermissionCheckSchema,
+  canUpdateServerSettings: PermissionCheckSchema,
+  canUsePowerTools: PermissionCheckSchema,
+});
+
+export const AccountInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().nullable(),
+  role: z.string().nullable(),
+  verified: z.boolean().nullable(),
+  hasPendingVerification: z.boolean().nullable(),
+  isOnboardingFinished: z.boolean().nullable(),
+  permissions: AccountPermissionsSchema,
+});
+
 export const WorkspaceInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -139,4 +168,56 @@ export const InsightTemplateInfoSchema = z.object({
   updatedAt: z.string(),
   createdBy: z.string(),
   updatedBy: z.string().nullable(),
+});
+
+export const TemplateModelSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+});
+
+const TemplateInsightFromTemplateSchema = z.object({
+  kind: z.literal("fromTemplate"),
+  templateId: z.string().min(1),
+  modelRefs: z.array(z.string()).optional(),
+  name: z.string().optional(),
+});
+
+const TemplateInsightInlineSchema = z.object({
+  kind: z.literal("inline"),
+  name: z.string().min(1),
+  type: z.string().optional(),
+  trigger: z.string().optional(),
+  query: z.record(z.string(), z.unknown()),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  modelRefs: z.array(z.string()).optional(),
+});
+
+export const TemplateInsightSchema = z.discriminatedUnion("kind", [
+  TemplateInsightFromTemplateSchema,
+  TemplateInsightInlineSchema,
+]);
+
+export const TemplateAutomationSchema = z.object({
+  name: z.string().min(1),
+  enabled: z.boolean().default(false),
+  isTestAutomation: z.boolean().optional(),
+});
+
+export const ProjectTemplateSpecSchema = z.object({
+  workspaceId: z.string().min(1),
+  project: z.object({
+    name: z.string().min(1),
+    description: z.string().optional(),
+    visibility: z.enum(["PUBLIC", "PRIVATE", "WORKSPACE"]).optional(),
+  }),
+  models: z.array(TemplateModelSchema).optional(),
+  insights: z.array(TemplateInsightSchema).optional(),
+  automations: z.array(TemplateAutomationSchema).optional(),
+});
+
+export const ProjectTemplateResultSchema = z.object({
+  projectId: z.string(),
+  modelIds: z.record(z.string(), z.string()),
+  insightIds: z.array(z.string()),
+  automationIds: z.array(z.string()),
 });

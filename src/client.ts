@@ -1,5 +1,6 @@
 import { createHttpClient, type HttpClient } from "./transport/http.js";
 import { createWsClient, disposeWsClient, type WsClient } from "./transport/ws.js";
+import { Account } from "./nodes/Account.js";
 import { Project } from "./nodes/Project.js";
 import { User } from "./nodes/User.js";
 import { Workspace } from "./nodes/Workspace.js";
@@ -59,6 +60,10 @@ export class Speckle {
 
   get activeUser(): User {
     return User.active(this);
+  }
+
+  get account(): Account {
+    return new Account(this);
   }
 
   async dispose(): Promise<void> {

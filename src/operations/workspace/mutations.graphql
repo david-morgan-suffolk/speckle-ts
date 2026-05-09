@@ -27,3 +27,16 @@ mutation InviteToWorkspace($workspaceId: String!, $input: WorkspaceInviteCreateI
     }
   }
 }
+
+mutation CreateWorkspaceProject($input: WorkspaceProjectCreateInput!) {
+  workspaceMutations {
+    projects {
+      create(input: $input) {
+        id
+        name
+        visibility
+        workspaceId
+      }
+    }
+  }
+}

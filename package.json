@@ -14,7 +14,15 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js",
+      "default": "./dist/cli/index.js"
+    },
     "./package.json": "./package.json"
+  },
+  "bin": {
+    "speckle": "./dist/cli/index.js"
   },
   "sideEffects": false,
   "files": [
@@ -48,6 +56,9 @@
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "test": "bun test",
     "snapshot:insights": "bun test test/insights.live.test.ts",
+    "account:info": "bun run scripts/account-info.ts",
+    "template:new": "bun run scripts/template-new.ts",
+    "cli": "bun run src/cli/index.ts",
     "typecheck": "tsc --noEmit",
     "prepare": "bun run clean && bun run build"
   },
@@ -57,7 +68,21 @@
     "zod": "^4"
   },
   "peerDependencies": {
-    "graphql": "^16.9.0"
+    "@opentui/core": "^0.2.0",
+    "@opentui/react": "^0.2.0",
+    "citty": "^0.1.6",
+    "graphql": "^16.9.0",
+    "picocolors": "^1.1.0",
+    "react": "^19.2.0",
+    "yaml": "^2.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentui/core": { "optional": true },
+    "@opentui/react": { "optional": true },
+    "citty": { "optional": true },
+    "picocolors": { "optional": true },
+    "react": { "optional": true },
+    "yaml": { "optional": true }
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.3",
@@ -66,9 +91,16 @@
     "@graphql-codegen/typescript": "^4.1.1",
     "@graphql-codegen/typescript-graphql-request": "^6.2.0",
     "@graphql-codegen/typescript-operations": "^4.3.1",
+    "@opentui/core": "^0.2.0",
+    "@opentui/react": "^0.2.0",
     "@types/bun": "latest",
+    "@types/react": "^19.2.0",
+    "citty": "^0.1.6",
     "graphql": "^16.9.0",
+    "picocolors": "^1.1.0",
+    "react": "^19.2.0",
     "tsc-alias": "^1.8.17",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "yaml": "^2.6.0"
   }
 }

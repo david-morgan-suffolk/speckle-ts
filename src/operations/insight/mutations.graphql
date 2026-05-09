@@ -1,0 +1,26 @@
+mutation CreateInsight($input: InsightCreateInput!) {
+  insightMutations {
+    create(input: $input) {
+      id
+      name
+      type
+      version
+      projectId
+      modelIds
+    }
+  }
+}
+
+mutation CreateInsightFromTemplate($input: CreateFromTemplateInput!) {
+  insightMutations {
+    createFromTemplate(input: $input) {
+      id
+      name
+      type
+      version
+      templateVersion
+      projectId
+      modelIds
+    }
+  }
+}

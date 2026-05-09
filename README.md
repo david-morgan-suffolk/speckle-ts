@@ -87,6 +87,60 @@ Outputs to `src/generated/`:
 
 Add new ops by dropping `.graphql` files into `src/operations/<domain>/{queries,mutations,subscriptions}.graphql` and re-running codegen.
 
+## CLI (optional)
+
+An opt-in CLI + TUI ships as a subpath export at `@suffolk/speckle/cli`. It
+is **not** wired to a `bin` entry — install the optional peers and either
+invoke the dist file directly or alias it yourself.
+
+```bash
+# Add the CLI/TUI peer deps
+bun add citty
+# Add the TUI peers (optional, only needed for `speckle tui`)
+bun add @opentui/core @opentui/react react
+
+# Run from the installed package
+node node_modules/@suffolk/speckle/dist/cli/index.js account info
+# or alias it
+alias speckle="node $(node -p "require.resolve('@suffolk/speckle/cli')")"
+speckle account info
+```
+
+### Auth
+
+Credentials resolve in this order:
+
+1. `SPECKLE_TOKEN` + `SPECKLE_SERVER` env vars (matches the library)
+2. `~/.speckle/config.json`, populated by `speckle auth login`
+
+```bash
+speckle auth login --token <PAT> --profile dev --setDefault
+speckle auth list
+speckle auth logout --profile dev
+```
+
+The config file is written `0600` and contains your token — treat it like
+`~/.netrc`.
+
+### Commands
+
+```bash
+speckle account info                        # account + permissions matrix
+speckle project ls [--workspace ID]         # list active user's projects
+speckle project show <id>                   # project details
+speckle model ls <projectId>                # models in a project
+speckle model show <projectId> <modelId>    # model details
+speckle version ls <projectId> <modelId>    # versions of a model
+speckle insight ls <projectId>              # insights on a project
+speckle insight results <projectId> <insightId> [--model id [--version id]]
+speckle template apply spec.json|spec.yaml  # run applyProjectTemplate workflow
+speckle tui                                 # interactive opentui browser
+```
+
+Add `--json` to any read command for pipe-friendly JSON. Pass
+`--profile <name>` / `--server <url>` / `--token <t>` on any command to
+override credentials.
+
 ## Architecture
 
 ```

@@ -5,6 +5,8 @@
     "module": "preserve",
     "moduleDetection": "force",
     "allowJs": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@opentui/react",
 
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
