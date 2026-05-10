@@ -1,6 +1,27 @@
 import { Node } from "./Node.js";
 import { Model } from "./Model.js";
 import { Insight, listProjectInsights } from "./Insight.js";
+import {
+  Webhook,
+  createWebhook,
+  listWebhooks,
+} from "./Webhook.js";
+import {
+  Issue,
+  createIssue,
+  iterateProjectIssues,
+  listAllProjectIssues,
+  listProjectIssues,
+} from "./Issue.js";
+import { deleteVersions } from "./Version.js";
+import { listPendingFileImports } from "./FileImport.js";
+import {
+  Automation,
+  createAutomation,
+  iterateProjectAutomations,
+  listAllProjectAutomations,
+  listProjectAutomations,
+} from "./Automation.js";
 import { subscribe } from "../transport/ws.js";
 import { parseOrThrow } from "../transport/validate.js";
 import {
@@ -11,11 +32,20 @@ import {
 import { z } from "zod";
 import type { Speckle } from "../client.js";
 import type {
+  AutomationInfo,
+  AutomationListOptions,
+  CreateAutomationInput,
+  CreateIssueInput,
+  CreateWebhookInput,
+  FileImportJob,
   InsightInfo,
+  IssueInfo,
+  IssuesFilter,
   ModelsTreeItem,
   PageInfo,
   ProjectInfo,
   ProjectModelsTreeFilterInput,
+  WebhookInfo,
 } from "../types.js";
 
 const PROJECT_QUERY = /* GraphQL */ `
@@ -70,6 +100,54 @@ const PROJECT_VERSIONS_UPDATED_SUB = /* GraphQL */ `
       version {
         id
         message
+        createdAt
+      }
+    }
+  }
+`;
+
+const PROJECT_AUTOMATIONS_UPDATED_SUB = /* GraphQL */ `
+  subscription ProjectAutomationsUpdated($projectId: String!) {
+    projectAutomationsUpdated(projectId: $projectId) {
+      type
+      automationId
+      automation {
+        id
+        name
+        enabled
+      }
+    }
+  }
+`;
+
+const PROJECT_TRIGGERED_AUTOMATIONS_STATUS_SUB = /* GraphQL */ `
+  subscription ProjectTriggeredAutomationsStatusUpdated($projectId: String!) {
+    projectTriggeredAutomationsStatusUpdated(projectId: $projectId) {
+      type
+      version { id }
+      model { id }
+      project { id }
+    }
+  }
+`;
+
+const PROJECT_ISSUES_UPDATED_SUB = /* GraphQL */ `
+  subscription ProjectIssuesUpdated($target: ViewerUpdateTrackingTarget!) {
+    projectIssuesUpdated(target: $target) {
+      id
+      type
+      issue {
+        id
+        identifier
+        title
+        status
+        priority
+        updatedAt
+      }
+      reply {
+        id
+        issueId
+        rawDescription
         createdAt
       }
     }
@@ -190,12 +268,11 @@ export async function listProjectModelsTree(
   );
 }
 
-export async function listAllProjectModelsTree(
+export async function* iterateProjectModelsTree(
   speckle: Speckle,
   projectId: string,
   opts?: ListAllProjectModelsTreeOptions,
-): Promise<ModelsTreeItem[]> {
-  const items: ModelsTreeItem[] = [];
+): AsyncIterable<ModelsTreeItem> {
   let cursor: string | null | undefined = undefined;
   while (true) {
     const page = await listProjectModelsTree(speckle, projectId, {
@@ -203,9 +280,20 @@ export async function listAllProjectModelsTree(
       ...(opts?.pageSize !== undefined ? { limit: opts.pageSize } : {}),
       ...(opts?.filter !== undefined ? { filter: opts.filter } : {}),
     });
-    items.push(...page.items);
+    for (const item of page.items) yield item;
     if (!page.cursor) break;
     cursor = page.cursor;
+  }
+}
+
+export async function listAllProjectModelsTree(
+  speckle: Speckle,
+  projectId: string,
+  opts?: ListAllProjectModelsTreeOptions,
+): Promise<ModelsTreeItem[]> {
+  const items: ModelsTreeItem[] = [];
+  for await (const item of iterateProjectModelsTree(speckle, projectId, opts)) {
+    items.push(item);
   }
   return items;
 }
@@ -254,8 +342,133 @@ export class Project extends Node<ProjectInfo> {
     return listAllProjectModelsTree(this.speckle, this.id, opts);
   }
 
+  modelsTree(opts?: ListAllProjectModelsTreeOptions): AsyncIterable<ModelsTreeItem> {
+    return iterateProjectModelsTree(this.speckle, this.id, opts);
+  }
+
   modelChildrenTree(fullName: string): Promise<ModelsTreeItem[]> {
     return getModelChildrenTree(this.speckle, this.id, fullName);
+  }
+
+  webhooks(): Promise<WebhookInfo[]> {
+    return listWebhooks(this.speckle, this.id);
+  }
+
+  webhook(id: string): Webhook {
+    return new Webhook(this.speckle, this, id);
+  }
+
+  async createWebhook(input: CreateWebhookInput): Promise<Webhook> {
+    const id = await createWebhook(this.speckle, this.id, input);
+    return new Webhook(this.speckle, this, id);
+  }
+
+  issue(id: string): Issue {
+    return new Issue(this.speckle, this, id);
+  }
+
+  listIssues(filter?: IssuesFilter): Promise<PageInfo<IssueInfo>> {
+    return listProjectIssues(this.speckle, this.id, filter);
+  }
+
+  listAllIssues(filter?: Omit<IssuesFilter, "cursor">): Promise<IssueInfo[]> {
+    return listAllProjectIssues(this.speckle, this.id, filter);
+  }
+
+  issues(filter?: Omit<IssuesFilter, "cursor">): AsyncIterable<IssueInfo> {
+    return iterateProjectIssues(this.speckle, this.id, filter);
+  }
+
+  async createIssue(input: CreateIssueInput): Promise<Issue> {
+    const created = await createIssue(this.speckle, this.id, input);
+    return new Issue(this.speckle, this, created.id);
+  }
+
+  deleteVersions(versionIds: ReadonlyArray<string>): Promise<boolean> {
+    return deleteVersions(this.speckle, this.id, versionIds);
+  }
+
+  pendingFileImports(): Promise<FileImportJob[]> {
+    return listPendingFileImports(this.speckle, this.id);
+  }
+
+  automation(id: string): Automation {
+    return new Automation(this.speckle, this, id);
+  }
+
+  listAutomations(opts?: AutomationListOptions): Promise<PageInfo<AutomationInfo>> {
+    return listProjectAutomations(this.speckle, this.id, opts);
+  }
+
+  listAllAutomations(
+    opts?: Omit<AutomationListOptions, "cursor">,
+  ): Promise<AutomationInfo[]> {
+    return listAllProjectAutomations(this.speckle, this.id, opts);
+  }
+
+  automations(
+    opts?: Omit<AutomationListOptions, "cursor">,
+  ): AsyncIterable<AutomationInfo> {
+    return iterateProjectAutomations(this.speckle, this.id, opts);
+  }
+
+  async createAutomation(input: CreateAutomationInput): Promise<Automation> {
+    const created = await createAutomation(this.speckle, this.id, input);
+    return new Automation(this.speckle, this, created.id);
+  }
+
+  onAutomationsUpdate(
+    onNext: (event: unknown) => void,
+    onError?: (err: unknown) => void,
+  ): () => void {
+    return subscribe(
+      this.speckle.ws,
+      { query: PROJECT_AUTOMATIONS_UPDATED_SUB, variables: { projectId: this.id } },
+      onNext,
+      onError,
+      this.speckle.hooks,
+    );
+  }
+
+  onTriggeredAutomationsStatusUpdate(
+    onNext: (event: unknown) => void,
+    onError?: (err: unknown) => void,
+  ): () => void {
+    return subscribe(
+      this.speckle.ws,
+      {
+        query: PROJECT_TRIGGERED_AUTOMATIONS_STATUS_SUB,
+        variables: { projectId: this.id },
+      },
+      onNext,
+      onError,
+      this.speckle.hooks,
+    );
+  }
+
+  onIssuesUpdate(
+    target: { resourceIdString?: string; loadedVersionsOnly?: boolean },
+    onNext: (event: unknown) => void,
+    onError?: (err: unknown) => void,
+  ): () => void {
+    const variables = {
+      target: {
+        projectId: this.id,
+        ...(target.resourceIdString !== undefined
+          ? { resourceIdString: target.resourceIdString }
+          : {}),
+        ...(target.loadedVersionsOnly !== undefined
+          ? { loadedVersionsOnly: target.loadedVersionsOnly }
+          : {}),
+      },
+    };
+    return subscribe(
+      this.speckle.ws,
+      { query: PROJECT_ISSUES_UPDATED_SUB, variables },
+      onNext,
+      onError,
+      this.speckle.hooks,
+    );
   }
 
   protected async fetch(): Promise<ProjectInfo> {
@@ -266,7 +479,13 @@ export class Project extends Node<ProjectInfo> {
   }
 
   onUpdate(onNext: (event: unknown) => void, onError?: (err: unknown) => void): () => void {
-    return subscribe(this.speckle.ws, { query: PROJECT_UPDATED_SUB, variables: { id: this.id } }, onNext, onError);
+    return subscribe(
+      this.speckle.ws,
+      { query: PROJECT_UPDATED_SUB, variables: { id: this.id } },
+      onNext,
+      onError,
+      this.speckle.hooks,
+    );
   }
 
   onModelsUpdate(onNext: (event: unknown) => void, onError?: (err: unknown) => void): () => void {
@@ -275,6 +494,7 @@ export class Project extends Node<ProjectInfo> {
       { query: PROJECT_MODELS_UPDATED_SUB, variables: { id: this.id } },
       onNext,
       onError,
+      this.speckle.hooks,
     );
   }
 
@@ -284,6 +504,7 @@ export class Project extends Node<ProjectInfo> {
       { query: PROJECT_VERSIONS_UPDATED_SUB, variables: { id: this.id } },
       onNext,
       onError,
+      this.speckle.hooks,
     );
   }
 }

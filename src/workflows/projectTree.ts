@@ -3,7 +3,8 @@ import {
   listAllProjectModelsTree,
   getModelChildrenTree,
 } from "../nodes/Project.js";
-import { listAllModelVersions, listModelVersions } from "../nodes/Model.js";
+import { listAllModelVersions } from "../nodes/Model.js";
+import { createModelVersionsLoader } from "../loaders.js";
 import type {
   ModelsTreeItem,
   ProjectModelsTreeFilterInput,
@@ -20,6 +21,14 @@ export interface ExtractProjectTreeOptions {
   versionsLimit?: number;
   expandFullTree?: boolean;
   treeFilter?: ProjectModelsTreeFilterInput;
+  /**
+   * When versionsLimit is set, batch all per-model version fetches into a
+   * single aliased GraphQL query. Default true. Disable to revert to the
+   * fan-out path for debugging or to dodge query-complexity caps.
+   */
+  batchVersions?: boolean;
+  /** Max aliases per batched request when batchVersions is on. Default 25. */
+  batchSize?: number;
 }
 
 const DEFAULT_CONCURRENCY = 8;
@@ -45,6 +54,46 @@ async function runWithConcurrency<T>(
   }
   await Promise.all(workers);
   return results;
+}
+
+interface FetchVersionsOptions {
+  versionsLimit?: number;
+  concurrency: number;
+  batchVersions: boolean;
+  batchSize?: number;
+}
+
+async function fetchVersionsForModels(
+  speckle: Speckle,
+  projectId: string,
+  modelIds: string[],
+  opts: FetchVersionsOptions,
+): Promise<ReadonlyArray<readonly [string, VersionInfo[]]>> {
+  // Batched single-page path: one aliased query per batch.
+  if (opts.versionsLimit !== undefined && opts.batchVersions) {
+    const loader = createModelVersionsLoader(speckle, {
+      ...(opts.batchSize !== undefined ? { maxBatchSize: opts.batchSize } : {}),
+    });
+    const tasks = modelIds.map(
+      (modelId) => async () => {
+        const page = await loader.load(projectId, modelId, {
+          limit: opts.versionsLimit!,
+        });
+        return [modelId, page.items.slice()] as const;
+      },
+    );
+    return runWithConcurrency(tasks, modelIds.length);
+  }
+
+  // Per-model pagination path: full version history. No batching across
+  // models because each model walks its own cursor.
+  const tasks = modelIds.map(
+    (modelId) => async () => {
+      const versions = await listAllModelVersions(speckle, projectId, modelId);
+      return [modelId, versions] as const;
+    },
+  );
+  return runWithConcurrency(tasks, opts.concurrency);
 }
 
 async function expandHiddenChildren(
@@ -109,18 +158,17 @@ export async function extractProjectModelVersionsTree(
   const modelIds: string[] = [];
   collectModelIds(items, modelIds);
 
-  const fetchTasks = modelIds.map((modelId) => async () => {
-    if (opts?.versionsLimit !== undefined) {
-      const page = await listModelVersions(speckle, projectId, modelId, {
-        limit: opts.versionsLimit,
-      });
-      return [modelId, page.items.slice()] as const;
-    }
-    const versions = await listAllModelVersions(speckle, projectId, modelId);
-    return [modelId, versions] as const;
-  });
-
-  const fetched = await runWithConcurrency(fetchTasks, concurrency);
+  const fetched = await fetchVersionsForModels(
+    speckle,
+    projectId,
+    modelIds,
+    {
+      ...(opts?.versionsLimit !== undefined ? { versionsLimit: opts.versionsLimit } : {}),
+      concurrency,
+      batchVersions: opts?.batchVersions ?? true,
+      ...(opts?.batchSize !== undefined ? { batchSize: opts.batchSize } : {}),
+    },
+  );
   const versionsByModelId = new Map<string, VersionInfo[]>();
   for (const [modelId, versions] of fetched) {
     versionsByModelId.set(modelId, [...versions]);

@@ -1,10 +1,17 @@
 import { Node } from "./Node.js";
 import { Version } from "./Version.js";
+import { uploadFileToModel, type UploadFileToModelOptions } from "./FileImport.js";
 import { parseOrThrow } from "../transport/validate.js";
-import { ModelInfoSchema, ModelVersionsPageSchema } from "../schemas.js";
+import { ModelInfoSchema, ModelVersionsPageSchema, VersionInfoSchema } from "../schemas.js";
 import type { Project } from "./Project.js";
 import type { Speckle } from "../client.js";
-import type { ModelInfo, PageInfo, VersionInfo } from "../types.js";
+import type {
+  FileImportJob,
+  ModelInfo,
+  PageInfo,
+  PublishVersionInput,
+  VersionInfo,
+} from "../types.js";
 
 const MODEL_QUERY = /* GraphQL */ `
   query Model($projectId: String!, $modelId: String!) {
@@ -15,6 +22,21 @@ const MODEL_QUERY = /* GraphQL */ `
         description
         createdAt
         updatedAt
+      }
+    }
+  }
+`;
+
+const CREATE_VERSION_MUTATION = /* GraphQL */ `
+  mutation CreateVersion($input: CreateVersionInput!) {
+    versionMutations {
+      create(input: $input) {
+        id
+        message
+        sourceApplication
+        referencedObject
+        createdAt
+        authorUser { id name }
       }
     }
   }
@@ -81,6 +103,39 @@ export async function listModelVersions(
   );
 }
 
+export async function* iterateModelVersions(
+  speckle: Speckle,
+  projectId: string,
+  modelId: string,
+  opts?: ListAllModelVersionsOptions,
+): AsyncIterable<VersionInfo> {
+  let cursor: string | null | undefined = undefined;
+  while (true) {
+    const page = await listModelVersions(speckle, projectId, modelId, {
+      ...(cursor !== undefined ? { cursor } : {}),
+      ...(opts?.pageSize !== undefined ? { limit: opts.pageSize } : {}),
+    });
+    for (const item of page.items) yield item;
+    if (!page.cursor) break;
+    cursor = page.cursor;
+  }
+}
+
+export async function publishVersion(
+  speckle: Speckle,
+  projectId: string,
+  modelId: string,
+  input: PublishVersionInput,
+): Promise<VersionInfo> {
+  const data = await speckle.http.request<
+    { versionMutations: { create: unknown } },
+    { input: PublishVersionInput & { projectId: string; modelId: string } }
+  >(CREATE_VERSION_MUTATION, {
+    input: { projectId, modelId, ...input },
+  });
+  return parseOrThrow("CreateVersion", VersionInfoSchema, data.versionMutations.create);
+}
+
 export async function listAllModelVersions(
   speckle: Speckle,
   projectId: string,
@@ -88,15 +143,8 @@ export async function listAllModelVersions(
   opts?: ListAllModelVersionsOptions,
 ): Promise<VersionInfo[]> {
   const items: VersionInfo[] = [];
-  let cursor: string | null | undefined = undefined;
-  while (true) {
-    const page = await listModelVersions(speckle, projectId, modelId, {
-      ...(cursor !== undefined ? { cursor } : {}),
-      ...(opts?.pageSize !== undefined ? { limit: opts.pageSize } : {}),
-    });
-    items.push(...page.items);
-    if (!page.cursor) break;
-    cursor = page.cursor;
+  for await (const item of iterateModelVersions(speckle, projectId, modelId, opts)) {
+    items.push(item);
   }
   return items;
 }
@@ -121,6 +169,19 @@ export class Model extends Node<ModelInfo> {
 
   listAllVersions(opts?: ListAllModelVersionsOptions): Promise<VersionInfo[]> {
     return listAllModelVersions(this.speckle, this.project.id, this.id, opts);
+  }
+
+  versions(opts?: ListAllModelVersionsOptions): AsyncIterable<VersionInfo> {
+    return iterateModelVersions(this.speckle, this.project.id, this.id, opts);
+  }
+
+  async publish(input: PublishVersionInput): Promise<Version> {
+    const created = await publishVersion(this.speckle, this.project.id, this.id, input);
+    return new Version(this.speckle, this, created.id);
+  }
+
+  uploadFile(opts: UploadFileToModelOptions): Promise<FileImportJob> {
+    return uploadFileToModel(this.speckle, this.project.id, this.id, opts);
   }
 
   protected async fetch(): Promise<ModelInfo> {

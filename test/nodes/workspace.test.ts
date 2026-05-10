@@ -1,5 +1,4 @@
 import { test, expect } from "bun:test";
-import { Speckle } from "../../src/client.js";
 import {
   WorkspaceInfoSchema,
   WorkspaceLimitsSchema,
@@ -8,6 +7,13 @@ import {
   WorkspaceSubscriptionInfoSchema,
   WorkspaceSubscriptionSeatsSchema,
 } from "../../src/schemas.js";
+import {
+  mockSpeckle,
+  workspaceHandler,
+  workspacePlanHandler,
+  workspaceLimitsHandler,
+  workspaceBillingHandler,
+} from "../_helpers/index.js";
 
 const SAMPLE_LIMITS = {
   commentsHistoryInDays: 30,
@@ -110,37 +116,26 @@ test("WorkspaceSubscriptionInfoSchema parses full subscription", () => {
 });
 
 test("Workspace.plan returns null when server reports no plan", async () => {
-  const fakeFetch = (async () =>
-    new Response(JSON.stringify({ data: { workspace: { plan: null } } }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk } = mockSpeckle({
+    GetWorkspacePlan: workspacePlanHandler(null),
+  });
   const plan = await sk.workspace("w1").plan();
   expect(plan).toBeNull();
   await sk.dispose();
 });
 
 test("Workspace.plan throws when workspace itself is null", async () => {
-  const fakeFetch = (async () =>
-    new Response(JSON.stringify({ data: { workspace: null } }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    })) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk } = mockSpeckle({
+    GetWorkspacePlan: workspaceHandler(null),
+  });
   await expect(sk.workspace("missing").plan()).rejects.toThrow();
   await sk.dispose();
 });
 
 test("Workspace.limits parses limits subtree", async () => {
-  const fakeFetch = (async () =>
-    new Response(
-      JSON.stringify({
-        data: { workspace: { plan: { limits: SAMPLE_LIMITS } } },
-      }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    )) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk } = mockSpeckle({
+    GetWorkspaceLimits: workspaceLimitsHandler(SAMPLE_LIMITS),
+  });
   const limits = await sk.workspace("w1").limits();
   expect(limits?.projectCount).toBe(25);
   expect(limits?.modelCount).toBeNull();
@@ -148,27 +143,17 @@ test("Workspace.limits parses limits subtree", async () => {
 });
 
 test("Workspace.billing returns combined shape with nullables", async () => {
-  let capturedBody: unknown = null;
-  const fakeFetch = (async (_url: string | URL | Request, init?: RequestInit) => {
-    capturedBody = init?.body ? JSON.parse(init.body as string) : null;
-    return new Response(
-      JSON.stringify({
-        data: {
-          workspace: {
-            plan: SAMPLE_PLAN,
-            subscription: SAMPLE_SUBSCRIPTION,
-            seats: null,
-          },
-        },
-      }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    );
-  }) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk, callsFor } = mockSpeckle({
+    GetWorkspaceBilling: workspaceBillingHandler({
+      plan: SAMPLE_PLAN,
+      subscription: SAMPLE_SUBSCRIPTION,
+      seats: null,
+    }),
+  });
   const billing = await sk.workspace("w1").billing();
   expect(billing.plan?.name).toBe("business");
   expect(billing.subscription?.billingInterval).toBe("monthly");
   expect(billing.seats).toBeNull();
-  expect((capturedBody as { variables: { id: string } }).variables.id).toBe("w1");
+  expect(callsFor("GetWorkspaceBilling")[0]?.variables).toEqual({ id: "w1" });
   await sk.dispose();
 });

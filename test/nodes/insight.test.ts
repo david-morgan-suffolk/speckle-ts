@@ -1,8 +1,10 @@
 import { test, expect, mock } from "bun:test";
 import { Speckle } from "../../src/client.js";
 import { InsightInfoSchema, InsightQuerySchema } from "../../src/schemas.js";
+import { mockSpeckle, insightHandler } from "../_helpers/index.js";
+import type { InsightInfo } from "../../src/types.js";
 
-const SAMPLE_INSIGHT = {
+const SAMPLE_INSIGHT: InsightInfo = {
   id: "ins_1",
   name: "Validate level value",
   type: "model_validation",
@@ -15,7 +17,12 @@ const SAMPLE_INSIGHT = {
   projectId: "p1",
   metadata: {
     description: "Checks default level values",
-    displayConfig: { ruleSeverity: {}, passThreshold: 0.9, rulePassThreshold: {}, ruleWarningThreshold: {} },
+    displayConfig: {
+      ruleSeverity: {},
+      passThreshold: 0.9,
+      rulePassThreshold: {},
+      ruleWarningThreshold: {},
+    },
     sourceRulesetId: "rs_1",
   },
   query: {
@@ -52,7 +59,7 @@ test("InsightInfoSchema parses full insight payload", () => {
   const parsed = InsightInfoSchema.parse(SAMPLE_INSIGHT);
   expect(parsed.id).toBe("ins_1");
   expect(parsed.modelIds).toHaveLength(2);
-  expect(parsed.metadata.description).toBe("Checks default level values");
+  expect(parsed.metadata["description"]).toBe("Checks default level values");
 });
 
 test("Project.insight() and Workspace.insightTemplate() chain without fetching", () => {
@@ -68,19 +75,14 @@ test("Project.insight() and Workspace.insightTemplate() chain without fetching",
 });
 
 test("Insight.get fetches and validates", async () => {
-  let calls = 0;
-  const fakeFetch = (async () => {
-    calls += 1;
-    return new Response(JSON.stringify({ data: { insight: SAMPLE_INSIGHT } }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
-  }) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk, callsFor } = mockSpeckle({
+    Insight: insightHandler(SAMPLE_INSIGHT),
+  });
   const ins = sk.project("p1").insight("ins_1");
   const info = await ins.get;
   expect(info.name).toBe("Validate level value");
   expect(info.query.compute.rules?.[0]?.check.value).toBe("No Level");
-  expect(calls).toBe(1);
+  expect(callsFor("Insight")).toHaveLength(1);
+  expect(callsFor("Insight")[0]?.variables).toMatchObject({ projectId: "p1", id: "ins_1" });
   await sk.dispose();
 });
