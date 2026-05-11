@@ -261,6 +261,33 @@ export const InsightTemplateInfoSchema = z.object({
   updatedBy: z.string().nullable(),
 });
 
+export const DashboardProjectRefSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export const DashboardInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  state: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  projects: z.array(DashboardProjectRefSchema),
+  workspace: z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+  }),
+  createdBy: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
+});
+
+export const DashboardsPageSchema = PageInfoSchema(DashboardInfoSchema);
+
 export const TemplateModelSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -294,6 +321,12 @@ export const TemplateAutomationSchema = z.object({
   isTestAutomation: z.boolean().optional(),
 });
 
+export const TemplateDashboardSchema = z.object({
+  name: z.string().min(1),
+  fromDashboardId: z.string().min(1),
+  automationRef: z.string().optional(),
+});
+
 export const ProjectTemplateSpecSchema = z.object({
   workspaceId: z.string().min(1),
   project: z.object({
@@ -304,6 +337,7 @@ export const ProjectTemplateSpecSchema = z.object({
   models: z.array(TemplateModelSchema).optional(),
   insights: z.array(TemplateInsightSchema).optional(),
   automations: z.array(TemplateAutomationSchema).optional(),
+  dashboards: z.array(TemplateDashboardSchema).optional(),
 });
 
 export const ProjectTemplateResultSchema = z.object({
@@ -311,6 +345,7 @@ export const ProjectTemplateResultSchema = z.object({
   modelIds: z.record(z.string(), z.string()),
   insightIds: z.array(z.string()),
   automationIds: z.array(z.string()),
+  dashboardIds: z.array(z.string()),
 });
 
 export const WebhookInfoSchema = z.object({

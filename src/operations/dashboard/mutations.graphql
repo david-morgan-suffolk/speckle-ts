@@ -1,0 +1,32 @@
+mutation CreateDashboard(
+  $input: DashboardCreateInput!
+  $workspace: WorkspaceIdentifier!
+) {
+  dashboardMutations {
+    create(input: $input, workspace: $workspace) {
+      ...DashboardFields
+    }
+  }
+}
+
+mutation UpdateDashboard($input: DashboardUpdateInput!) {
+  dashboardMutations {
+    update(input: $input) {
+      ...DashboardFields
+    }
+  }
+}
+
+mutation DeleteDashboard($id: String!) {
+  dashboardMutations {
+    delete(id: $id)
+  }
+}
+
+mutation DuplicateDashboard($id: String!, $name: String) {
+  dashboardMutations {
+    duplicate(id: $id, name: $name) {
+      ...DashboardFields
+    }
+  }
+}

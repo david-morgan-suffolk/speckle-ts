@@ -2,6 +2,13 @@ import { Node } from "./Node.js";
 import { Model } from "./Model.js";
 import { Insight, listProjectInsights } from "./Insight.js";
 import {
+  Dashboard,
+  iterateProjectDashboards,
+  listAllProjectDashboards,
+  listProjectDashboards,
+  type ProjectDashboardsListOptions,
+} from "./Dashboard.js";
+import {
   Webhook,
   createWebhook,
   listWebhooks,
@@ -37,6 +44,7 @@ import type {
   CreateAutomationInput,
   CreateIssueInput,
   CreateWebhookInput,
+  DashboardInfo,
   FileImportJob,
   InsightInfo,
   IssueInfo,
@@ -415,6 +423,28 @@ export class Project extends Node<ProjectInfo> {
   async createAutomation(input: CreateAutomationInput): Promise<Automation> {
     const created = await createAutomation(this.speckle, this.id, input);
     return new Automation(this.speckle, this, created.id);
+  }
+
+  dashboard(id: string): Dashboard {
+    return new Dashboard(this.speckle, id);
+  }
+
+  listDashboards(
+    opts?: ProjectDashboardsListOptions,
+  ): Promise<PageInfo<DashboardInfo>> {
+    return listProjectDashboards(this.speckle, this.id, opts);
+  }
+
+  listAllDashboards(
+    opts?: Omit<ProjectDashboardsListOptions, "cursor">,
+  ): Promise<DashboardInfo[]> {
+    return listAllProjectDashboards(this.speckle, this.id, opts);
+  }
+
+  dashboards(
+    opts?: Omit<ProjectDashboardsListOptions, "cursor">,
+  ): AsyncIterable<DashboardInfo> {
+    return iterateProjectDashboards(this.speckle, this.id, opts);
   }
 
   onAutomationsUpdate(

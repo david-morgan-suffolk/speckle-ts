@@ -1,0 +1,60 @@
+fragment DashboardFields on Dashboard {
+  id
+  name
+  state
+  createdAt
+  updatedAt
+  projects {
+    id
+    name
+  }
+  workspace {
+    id
+    name
+    slug
+  }
+  createdBy {
+    id
+    name
+  }
+}
+
+query GetDashboard($id: String!) {
+  dashboard(id: $id) {
+    ...DashboardFields
+  }
+}
+
+query ListWorkspaceDashboards(
+  $workspaceId: String!
+  $cursor: String
+  $limit: Int! = 50
+  $filter: WorkspaceDashboardsFilter
+) {
+  workspace(id: $workspaceId) {
+    dashboards(cursor: $cursor, limit: $limit, filter: $filter) {
+      totalCount
+      cursor
+      items {
+        ...DashboardFields
+      }
+    }
+  }
+}
+
+query ListProjectDashboards(
+  $projectId: String!
+  $cursor: String
+  $limit: Int! = 50
+  $filter: ProjectDashboardsFilter
+) {
+  project(id: $projectId) {
+    dashboards(cursor: $cursor, limit: $limit, filter: $filter) {
+      totalCount
+      cursor
+      items {
+        ...DashboardFields
+      }
+    }
+  }
+}

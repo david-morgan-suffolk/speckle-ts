@@ -14,10 +14,24 @@ export interface TemplateRouterOptions {
   workspaceFails?: boolean;
   modelFailsAt?: string;
   insightFailsAt?: string;
+  dashboardDuplicateFailsAt?: string;
 }
 
 export interface TemplateRouter {
   handlers: Record<string, GraphQLHandler>;
+}
+
+function dashboardBody(id: string, name: string, wsId: string, wsSlug: string) {
+  return {
+    id,
+    name,
+    state: null as string | null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    projects: [],
+    workspace: { id: wsId, name: "Acme", slug: wsSlug },
+    createdBy: null,
+  };
 }
 
 export function templateRouter(opts: TemplateRouterOptions = {}): TemplateRouter {
@@ -25,8 +39,10 @@ export function templateRouter(opts: TemplateRouterOptions = {}): TemplateRouter
   let modelCounter = 0;
   let insightCounter = 0;
   let automationCounter = 0;
+  let dashboardCounter = 0;
 
   const wsId = opts.workspaceId ?? "ws_1";
+  const wsSlug = "acme";
 
   const handlers: Record<string, GraphQLHandler> = {
     Workspace: () => {
@@ -117,6 +133,33 @@ export function templateRouter(opts: TemplateRouterOptions = {}): TemplateRouter
           automationMutations: {
             create: { id: `auto_${automationCounter}`, name: input.name },
           },
+        },
+      };
+    },
+
+    DuplicateDashboard: (req: GraphQLRequestBody) => {
+      const id = req.variables["id"] as string;
+      const name = (req.variables["name"] as string | null) ?? `dup_${id}`;
+      if (opts.dashboardDuplicateFailsAt && id === opts.dashboardDuplicateFailsAt) {
+        return gqlError({ message: `duplicate ${id} fails` });
+      }
+      dashboardCounter += 1;
+      return {
+        dashboardMutations: {
+          duplicate: dashboardBody(`dash_${dashboardCounter}`, name, wsId, wsSlug),
+        },
+      };
+    },
+
+    UpdateDashboard: (req: GraphQLRequestBody) => {
+      const input = req.variables["input"] as {
+        id: string;
+        name?: string;
+        dashboardProjectLinks?: { projectId: string; automationId?: string }[];
+      };
+      return {
+        dashboardMutations: {
+          update: dashboardBody(input.id, input.name ?? "renamed", wsId, wsSlug),
         },
       };
     },

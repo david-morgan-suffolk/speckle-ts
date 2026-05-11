@@ -1,0 +1,55 @@
+{
+  "id": "test-dash-1",
+  "name": "Synthetic",
+  "modifiedAt": 1778526719814,
+  "version": "1",
+  "items": [
+    {
+      "id": "29f18db9-ba39-4b9e-88d5-cc330d1ac81e",
+      "componentId": "A7F8D92E-4B1C-4E2F-9A3D-5C6B8E7F9A1B",
+      "title": "Model viewer",
+      "gridInfo": { "w": 7, "h": 8, "x": 0, "y": 0 },
+      "state": {
+        "modelUrl": "https://app.speckle.systems/projects/p1/models/m1@v1",
+        "showViewer": true,
+        "targetDataSourceIds": ["ae0c0cba-b0c0-4432-810f-93252284df25"]
+      }
+    },
+    {
+      "id": "7e780a93-1fe4-44ed-abec-9f78e5756f39",
+      "componentId": "B8E9C03F-5C2D-4F3E-8B4E-6D7C9F8E0A2C",
+      "title": "Element table",
+      "gridInfo": { "w": 7, "h": 4, "x": 0, "y": 8 },
+      "state": {
+        "title": "Object table",
+        "targetDataSourceIds": ["ae0c0cba-b0c0-4432-810f-93252284df25"],
+        "displayProperties": [
+          { "name": "category", "path": ["category"], "concatenatedPath": "category", "type": "string", "selected": true }
+        ],
+        "filterRules": [],
+        "showTotals": false
+      }
+    },
+    {
+      "id": "4cdf70d5-6bea-402c-a280-0011a87a1f53",
+      "componentId": "B4E5C69F-1C8D-0F9E-4B0E-2D3C5F4E6A8C",
+      "title": "Material stats",
+      "gridInfo": { "w": 5, "h": 4, "x": 7, "y": 0 },
+      "state": {},
+      "locked": true
+    }
+  ],
+  "themeName": "Default",
+  "customTheme": null,
+  "dataSources": [
+    {
+      "guid": "ae0c0cba-b0c0-4432-810f-93252284df25",
+      "projectId": "p1",
+      "modelId": "m1",
+      "versionId": "v1",
+      "pinnedVersion": true,
+      "modelName": "models/sample.rvt"
+    }
+  ],
+  "extraStorage": {}
+}

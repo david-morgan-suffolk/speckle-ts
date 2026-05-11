@@ -26,9 +26,11 @@ import type {
   InsightComputeSchema,
   InsightRuleSchema,
   InsightFilterClauseSchema,
+  DashboardInfoSchema,
   TemplateModelSchema,
   TemplateInsightSchema,
   TemplateAutomationSchema,
+  TemplateDashboardSchema,
   ProjectTemplateSpecSchema,
   ProjectTemplateResultSchema,
   WebhookInfoSchema,
@@ -72,11 +74,34 @@ export type InsightCompute = z.infer<typeof InsightComputeSchema>;
 export type InsightRule = z.infer<typeof InsightRuleSchema>;
 export type InsightFilterClause = z.infer<typeof InsightFilterClauseSchema>;
 
+export type DashboardInfo = z.infer<typeof DashboardInfoSchema>;
+
 export type TemplateModel = z.infer<typeof TemplateModelSchema>;
 export type TemplateInsight = z.infer<typeof TemplateInsightSchema>;
 export type TemplateAutomation = z.infer<typeof TemplateAutomationSchema>;
+export type TemplateDashboard = z.infer<typeof TemplateDashboardSchema>;
 export type ProjectTemplateSpec = z.infer<typeof ProjectTemplateSpecSchema>;
 export type ProjectTemplateResult = z.infer<typeof ProjectTemplateResultSchema>;
+
+export interface DashboardListOptions {
+  cursor?: string | null;
+  limit?: number;
+}
+
+export interface WorkspaceDashboardsFilter {
+  projectIds?: string[];
+  search?: string;
+}
+
+export interface ProjectDashboardsFilter {
+  search?: string;
+}
+
+export interface UpdateDashboardInput {
+  name?: string;
+  state?: string;
+  projectLinks?: ReadonlyArray<{ projectId: string; automationId?: string }>;
+}
 
 export type WebhookInfo = z.infer<typeof WebhookInfoSchema>;
 export type WebhookEventInfo = z.infer<typeof WebhookEventInfoSchema>;

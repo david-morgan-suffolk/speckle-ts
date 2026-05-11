@@ -13,6 +13,29 @@ export { InsightTemplate } from "@/nodes/InsightTemplate.js";
 export { Webhook } from "@/nodes/Webhook.js";
 export { Issue } from "@/nodes/Issue.js";
 export { Automation } from "@/nodes/Automation.js";
+export { Dashboard } from "@/nodes/Dashboard.js";
+
+export {
+  parseDashboardState,
+  parseTypedDashboardState,
+  serializeDashboardState,
+  extractWidgets,
+  extractWidgetsDeep,
+  validateWidget,
+  DashboardStateSchema,
+  DashboardWidgetSchema,
+  DashboardGridInfoSchema,
+  DashboardDataSourceSchema,
+  DASHBOARD_WIDGET_DISCRIMINATOR,
+  DASHBOARD_WIDGET_CONTAINER,
+  KNOWN_WIDGET_COMPONENTS,
+  labelForComponentId,
+  type DashboardState,
+  type DashboardWidget,
+  type DashboardGridInfo,
+  type DashboardDataSource,
+  type ExtractWidgetsOptions,
+} from "@/dashboards/state.js";
 
 export type {
   ProjectInfo,
@@ -44,9 +67,15 @@ export type {
   PageInfo,
   ModelsTreeItem,
   ProjectModelsTreeFilterInput,
+  DashboardInfo,
+  DashboardListOptions,
+  WorkspaceDashboardsFilter,
+  ProjectDashboardsFilter,
+  UpdateDashboardInput,
   TemplateModel,
   TemplateInsight,
   TemplateAutomation,
+  TemplateDashboard,
   ProjectTemplateSpec,
   ProjectTemplateResult,
   WebhookInfo,
@@ -153,9 +182,12 @@ export {
   ModelsTreeItemSchema,
   ModelsTreeItemPageSchema,
   ModelVersionsPageSchema,
+  DashboardInfoSchema,
+  DashboardsPageSchema,
   TemplateModelSchema,
   TemplateInsightSchema,
   TemplateAutomationSchema,
+  TemplateDashboardSchema,
   ProjectTemplateSpecSchema,
   ProjectTemplateResultSchema,
   WebhookInfoSchema,

@@ -693,17 +693,12 @@ export type AutomateFunctionRunStatusReportInput = {
 
 export type AutomateFunctionTemplate = {
   __typename?: 'AutomateFunctionTemplate';
-  id: AutomateFunctionTemplateLanguage;
+  id: Scalars['String']['output'];
+  language: Scalars['String']['output'];
   logo: Scalars['String']['output'];
   title: Scalars['String']['output'];
   url: Scalars['String']['output'];
 };
-
-export enum AutomateFunctionTemplateLanguage {
-  DOT_NET = 'DOT_NET',
-  PYTHON = 'PYTHON',
-  TYPESCRIPT = 'TYPESCRIPT'
-}
 
 export type AutomateFunctionToken = {
   __typename?: 'AutomateFunctionToken';
@@ -1239,7 +1234,7 @@ export type CreateAutomateFunctionInput = {
   /** SourceAppNames values from @speckle/shared */
   supportedSourceApps: Array<Scalars['String']['input']>;
   tags: Array<Scalars['String']['input']>;
-  template: AutomateFunctionTemplateLanguage;
+  template: Scalars['String']['input'];
 };
 
 export type CreateAutomateFunctionWithoutVersionInput = {
@@ -5349,6 +5344,7 @@ export type RequestWorkspaceSupportAccessInput = {
 export type ResourceAccessRule = {
   __typename?: 'ResourceAccessRule';
   modelId: Maybe<Scalars['String']['output']>;
+  project: Maybe<Project>;
   projectId: Maybe<Scalars['String']['output']>;
   type: ResourceAccessRuleType;
   versionId: Maybe<Scalars['String']['output']>;
@@ -8989,6 +8985,65 @@ export type OnCommentActivitySubscriptionVariables = Exact<{
 
 export type OnCommentActivitySubscription = { __typename?: 'Subscription', projectCommentsUpdated: { __typename?: 'ProjectCommentsUpdatedMessage', id: string, type: ProjectCommentsUpdatedMessageType, comment: { __typename?: 'Comment', id: string, rawText: string | null, createdAt: string } | null } };
 
+export type CreateDashboardMutationVariables = Exact<{
+  input: DashboardCreateInput;
+  workspace: WorkspaceIdentifier;
+}>;
+
+
+export type CreateDashboardMutation = { __typename?: 'Mutation', dashboardMutations: { __typename?: 'DashboardMutations', create: { __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null } } };
+
+export type UpdateDashboardMutationVariables = Exact<{
+  input: DashboardUpdateInput;
+}>;
+
+
+export type UpdateDashboardMutation = { __typename?: 'Mutation', dashboardMutations: { __typename?: 'DashboardMutations', update: { __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null } } };
+
+export type DeleteDashboardMutationVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type DeleteDashboardMutation = { __typename?: 'Mutation', dashboardMutations: { __typename?: 'DashboardMutations', delete: boolean } };
+
+export type DuplicateDashboardMutationVariables = Exact<{
+  id: Scalars['String']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type DuplicateDashboardMutation = { __typename?: 'Mutation', dashboardMutations: { __typename?: 'DashboardMutations', duplicate: { __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null } } };
+
+export type DashboardFieldsFragment = { __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null };
+
+export type GetDashboardQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetDashboardQuery = { __typename?: 'Query', dashboard: { __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null } };
+
+export type ListWorkspaceDashboardsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+  filter?: InputMaybe<WorkspaceDashboardsFilter>;
+}>;
+
+
+export type ListWorkspaceDashboardsQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', dashboards: { __typename?: 'DashboardCollection', totalCount: number, cursor: string | null, items: Array<{ __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null }> } } };
+
+export type ListProjectDashboardsQueryVariables = Exact<{
+  projectId: Scalars['String']['input'];
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+  filter?: InputMaybe<ProjectDashboardsFilter>;
+}>;
+
+
+export type ListProjectDashboardsQuery = { __typename?: 'Query', project: { __typename?: 'Project', dashboards: { __typename?: 'DashboardCollection', totalCount: number, cursor: string | null, items: Array<{ __typename?: 'Dashboard', id: string, name: string, state: string | null, createdAt: string, updatedAt: string, projects: Array<{ __typename?: 'LimitedProject', id: string, name: string }>, workspace: { __typename?: 'LimitedWorkspace', id: string, name: string, slug: string }, createdBy: { __typename?: 'LimitedUser', id: string, name: string } | null }> } } };
+
 export type StartFileImportMutationVariables = Exact<{
   input: GenerateFileUploadUrlInput;
 }>;
@@ -9291,7 +9346,7 @@ export type GetWorkspaceQueryVariables = Exact<{
 }>;
 
 
-export type GetWorkspaceQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', id: string, name: string, slug: string, description: string | null, createdAt: string } };
+export type GetWorkspaceQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', id: string, name: string, slug: string, description: string | null, createdAt: string, readOnly: boolean } };
 
 export type ListWorkspacesQueryVariables = Exact<{
   cursor?: InputMaybe<Scalars['String']['input']>;
@@ -9301,6 +9356,58 @@ export type ListWorkspacesQueryVariables = Exact<{
 
 export type ListWorkspacesQuery = { __typename?: 'Query', activeUser: { __typename?: 'User', workspaces: { __typename?: 'WorkspaceCollection', totalCount: number, cursor: string | null, items: Array<{ __typename?: 'Workspace', id: string, name: string, slug: string, description: string | null }> } } | null };
 
+export type WorkspaceLimitsFieldsFragment = { __typename?: 'WorkspaceLimits', commentsHistoryInDays: number | null, dashboardCount: number | null, modelCount: number | null, projectCount: number | null, userCount: number | null, versionCount: number | null, versionsHistoryInDays: number | null };
+
+export type WorkspacePlanUsageFieldsFragment = { __typename?: 'WorkspacePlanUsage', dashboardCount: number, projectCount: number, sync: { __typename?: 'WorkspaceSyncUsage', versionSyncsMonthly: number, versionSyncsTotal: number, versionsLoadedMonthly: number, versionsLoadedTotal: number, versionsPublishedMonthly: number, versionsPublishedTotal: number }, users: { __typename?: 'WorkspaceUserCount', pendingUserCount: number, userCount: number }, versions: { __typename?: 'WorkspaceVersionCount', pendingVersionCount: number, versionCount: number } };
+
+export type WorkspaceSubscriptionSeatsFieldsFragment = { __typename?: 'WorkspaceSubscriptionSeats', editors: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number }, viewers: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number } };
+
+export type WorkspacePlanFieldsFragment = { __typename?: 'WorkspacePlan', createdAt: string, features: Array<WorkspaceFeatureName>, limitOverrides: Record<string, unknown> | null, name: WorkspacePlans, paymentMethod: WorkspacePaymentMethod, status: WorkspacePlanStatuses, validUntil: string | null, limits: { __typename?: 'WorkspaceLimits', commentsHistoryInDays: number | null, dashboardCount: number | null, modelCount: number | null, projectCount: number | null, userCount: number | null, versionCount: number | null, versionsHistoryInDays: number | null }, usage: { __typename?: 'WorkspacePlanUsage', dashboardCount: number, projectCount: number, sync: { __typename?: 'WorkspaceSyncUsage', versionSyncsMonthly: number, versionSyncsTotal: number, versionsLoadedMonthly: number, versionsLoadedTotal: number, versionsPublishedMonthly: number, versionsPublishedTotal: number }, users: { __typename?: 'WorkspaceUserCount', pendingUserCount: number, userCount: number }, versions: { __typename?: 'WorkspaceVersionCount', pendingVersionCount: number, versionCount: number } } };
+
+export type WorkspaceSubscriptionFieldsFragment = { __typename?: 'WorkspaceSubscription', billingInterval: BillingInterval, createdAt: string, currency: Currency, currentBillingCycleEnd: string, updatedAt: string, addOn: { __typename?: 'WorkspaceSubscriptionAddOn', currentQuantity: number }, seats: { __typename?: 'WorkspaceSubscriptionSeats', editors: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number }, viewers: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number } } };
+
+export type GetWorkspacePlanQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetWorkspacePlanQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', plan: { __typename?: 'WorkspacePlan', createdAt: string, features: Array<WorkspaceFeatureName>, limitOverrides: Record<string, unknown> | null, name: WorkspacePlans, paymentMethod: WorkspacePaymentMethod, status: WorkspacePlanStatuses, validUntil: string | null, limits: { __typename?: 'WorkspaceLimits', commentsHistoryInDays: number | null, dashboardCount: number | null, modelCount: number | null, projectCount: number | null, userCount: number | null, versionCount: number | null, versionsHistoryInDays: number | null }, usage: { __typename?: 'WorkspacePlanUsage', dashboardCount: number, projectCount: number, sync: { __typename?: 'WorkspaceSyncUsage', versionSyncsMonthly: number, versionSyncsTotal: number, versionsLoadedMonthly: number, versionsLoadedTotal: number, versionsPublishedMonthly: number, versionsPublishedTotal: number }, users: { __typename?: 'WorkspaceUserCount', pendingUserCount: number, userCount: number }, versions: { __typename?: 'WorkspaceVersionCount', pendingVersionCount: number, versionCount: number } } } | null } };
+
+export type GetWorkspaceLimitsQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetWorkspaceLimitsQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', plan: { __typename?: 'WorkspacePlan', limits: { __typename?: 'WorkspaceLimits', commentsHistoryInDays: number | null, dashboardCount: number | null, modelCount: number | null, projectCount: number | null, userCount: number | null, versionCount: number | null, versionsHistoryInDays: number | null } } | null } };
+
+export type GetWorkspaceUsageQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetWorkspaceUsageQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', plan: { __typename?: 'WorkspacePlan', usage: { __typename?: 'WorkspacePlanUsage', dashboardCount: number, projectCount: number, sync: { __typename?: 'WorkspaceSyncUsage', versionSyncsMonthly: number, versionSyncsTotal: number, versionsLoadedMonthly: number, versionsLoadedTotal: number, versionsPublishedMonthly: number, versionsPublishedTotal: number }, users: { __typename?: 'WorkspaceUserCount', pendingUserCount: number, userCount: number }, versions: { __typename?: 'WorkspaceVersionCount', pendingVersionCount: number, versionCount: number } } } | null } };
+
+export type GetWorkspaceSubscriptionQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetWorkspaceSubscriptionQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', subscription: { __typename?: 'WorkspaceSubscription', billingInterval: BillingInterval, createdAt: string, currency: Currency, currentBillingCycleEnd: string, updatedAt: string, addOn: { __typename?: 'WorkspaceSubscriptionAddOn', currentQuantity: number }, seats: { __typename?: 'WorkspaceSubscriptionSeats', editors: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number }, viewers: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number } } } | null } };
+
+export type GetWorkspaceSeatsQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetWorkspaceSeatsQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', seats: { __typename?: 'WorkspaceSubscriptionSeats', editors: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number }, viewers: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number } } | null } };
+
+export type GetWorkspaceBillingQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetWorkspaceBillingQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', plan: { __typename?: 'WorkspacePlan', createdAt: string, features: Array<WorkspaceFeatureName>, limitOverrides: Record<string, unknown> | null, name: WorkspacePlans, paymentMethod: WorkspacePaymentMethod, status: WorkspacePlanStatuses, validUntil: string | null, limits: { __typename?: 'WorkspaceLimits', commentsHistoryInDays: number | null, dashboardCount: number | null, modelCount: number | null, projectCount: number | null, userCount: number | null, versionCount: number | null, versionsHistoryInDays: number | null }, usage: { __typename?: 'WorkspacePlanUsage', dashboardCount: number, projectCount: number, sync: { __typename?: 'WorkspaceSyncUsage', versionSyncsMonthly: number, versionSyncsTotal: number, versionsLoadedMonthly: number, versionsLoadedTotal: number, versionsPublishedMonthly: number, versionsPublishedTotal: number }, users: { __typename?: 'WorkspaceUserCount', pendingUserCount: number, userCount: number }, versions: { __typename?: 'WorkspaceVersionCount', pendingVersionCount: number, versionCount: number } } } | null, subscription: { __typename?: 'WorkspaceSubscription', billingInterval: BillingInterval, createdAt: string, currency: Currency, currentBillingCycleEnd: string, updatedAt: string, addOn: { __typename?: 'WorkspaceSubscriptionAddOn', currentQuantity: number }, seats: { __typename?: 'WorkspaceSubscriptionSeats', editors: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number }, viewers: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number } } } | null, seats: { __typename?: 'WorkspaceSubscriptionSeats', editors: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number }, viewers: { __typename?: 'WorkspaceSubscriptionSeatCount', assigned: number, available: number } } | null } };
+
 export type OnWorkspaceUpdatedSubscriptionVariables = Exact<{
   workspaceId?: InputMaybe<Scalars['String']['input']>;
   workspaceSlug?: InputMaybe<Scalars['String']['input']>;
@@ -9309,6 +9416,28 @@ export type OnWorkspaceUpdatedSubscriptionVariables = Exact<{
 
 export type OnWorkspaceUpdatedSubscription = { __typename?: 'Subscription', workspaceUpdated: { __typename?: 'WorkspaceUpdatedMessage', id: string, workspace: { __typename?: 'Workspace', id: string, name: string } } };
 
+export const DashboardFieldsFragmentDoc = `
+    fragment DashboardFields on Dashboard {
+  id
+  name
+  state
+  createdAt
+  updatedAt
+  projects {
+    id
+    name
+  }
+  workspace {
+    id
+    name
+    slug
+  }
+  createdBy {
+    id
+    name
+  }
+}
+    `;
 export const ModelsTreeItemFieldsFragmentDoc = `
     fragment ModelsTreeItemFields on ModelsTreeItem {
   id
@@ -9353,6 +9482,84 @@ export const ModelsTreeItemFieldsFragmentDoc = `
   }
 }
     `;
+export const WorkspaceLimitsFieldsFragmentDoc = `
+    fragment WorkspaceLimitsFields on WorkspaceLimits {
+  commentsHistoryInDays
+  dashboardCount
+  modelCount
+  projectCount
+  userCount
+  versionCount
+  versionsHistoryInDays
+}
+    `;
+export const WorkspacePlanUsageFieldsFragmentDoc = `
+    fragment WorkspacePlanUsageFields on WorkspacePlanUsage {
+  dashboardCount
+  projectCount
+  sync {
+    versionSyncsMonthly
+    versionSyncsTotal
+    versionsLoadedMonthly
+    versionsLoadedTotal
+    versionsPublishedMonthly
+    versionsPublishedTotal
+  }
+  users {
+    pendingUserCount
+    userCount
+  }
+  versions {
+    pendingVersionCount
+    versionCount
+  }
+}
+    `;
+export const WorkspacePlanFieldsFragmentDoc = `
+    fragment WorkspacePlanFields on WorkspacePlan {
+  createdAt
+  features
+  limitOverrides
+  limits {
+    ...WorkspaceLimitsFields
+  }
+  name
+  paymentMethod
+  status
+  usage {
+    ...WorkspacePlanUsageFields
+  }
+  validUntil
+}
+    ${WorkspaceLimitsFieldsFragmentDoc}
+${WorkspacePlanUsageFieldsFragmentDoc}`;
+export const WorkspaceSubscriptionSeatsFieldsFragmentDoc = `
+    fragment WorkspaceSubscriptionSeatsFields on WorkspaceSubscriptionSeats {
+  editors {
+    assigned
+    available
+  }
+  viewers {
+    assigned
+    available
+  }
+}
+    `;
+export const WorkspaceSubscriptionFieldsFragmentDoc = `
+    fragment WorkspaceSubscriptionFields on WorkspaceSubscription {
+  addOn {
+    currentQuantity
+  }
+  billingInterval
+  createdAt
+  currency
+  currentBillingCycleEnd
+  seats {
+    ...WorkspaceSubscriptionSeatsFields
+  }
+  updatedAt
+}
+    ${WorkspaceSubscriptionSeatsFieldsFragmentDoc}`;
 export const GetAccountDocument = `
     query GetAccount {
   activeUser {
@@ -9605,6 +9812,73 @@ export const OnCommentActivityDocument = `
   }
 }
     `;
+export const CreateDashboardDocument = `
+    mutation CreateDashboard($input: DashboardCreateInput!, $workspace: WorkspaceIdentifier!) {
+  dashboardMutations {
+    create(input: $input, workspace: $workspace) {
+      ...DashboardFields
+    }
+  }
+}
+    ${DashboardFieldsFragmentDoc}`;
+export const UpdateDashboardDocument = `
+    mutation UpdateDashboard($input: DashboardUpdateInput!) {
+  dashboardMutations {
+    update(input: $input) {
+      ...DashboardFields
+    }
+  }
+}
+    ${DashboardFieldsFragmentDoc}`;
+export const DeleteDashboardDocument = `
+    mutation DeleteDashboard($id: String!) {
+  dashboardMutations {
+    delete(id: $id)
+  }
+}
+    `;
+export const DuplicateDashboardDocument = `
+    mutation DuplicateDashboard($id: String!, $name: String) {
+  dashboardMutations {
+    duplicate(id: $id, name: $name) {
+      ...DashboardFields
+    }
+  }
+}
+    ${DashboardFieldsFragmentDoc}`;
+export const GetDashboardDocument = `
+    query GetDashboard($id: String!) {
+  dashboard(id: $id) {
+    ...DashboardFields
+  }
+}
+    ${DashboardFieldsFragmentDoc}`;
+export const ListWorkspaceDashboardsDocument = `
+    query ListWorkspaceDashboards($workspaceId: String!, $cursor: String, $limit: Int! = 50, $filter: WorkspaceDashboardsFilter) {
+  workspace(id: $workspaceId) {
+    dashboards(cursor: $cursor, limit: $limit, filter: $filter) {
+      totalCount
+      cursor
+      items {
+        ...DashboardFields
+      }
+    }
+  }
+}
+    ${DashboardFieldsFragmentDoc}`;
+export const ListProjectDashboardsDocument = `
+    query ListProjectDashboards($projectId: String!, $cursor: String, $limit: Int! = 50, $filter: ProjectDashboardsFilter) {
+  project(id: $projectId) {
+    dashboards(cursor: $cursor, limit: $limit, filter: $filter) {
+      totalCount
+      cursor
+      items {
+        ...DashboardFields
+      }
+    }
+  }
+}
+    ${DashboardFieldsFragmentDoc}`;
 export const StartFileImportDocument = `
     mutation StartFileImport($input: GenerateFileUploadUrlInput!) {
   fileUploadMutations {
@@ -10084,6 +10358,7 @@ export const GetWorkspaceDocument = `
     slug
     description
     createdAt
+    readOnly
   }
 }
     `;
@@ -10103,6 +10378,72 @@ export const ListWorkspacesDocument = `
   }
 }
     `;
+export const GetWorkspacePlanDocument = `
+    query GetWorkspacePlan($id: String!) {
+  workspace(id: $id) {
+    plan {
+      ...WorkspacePlanFields
+    }
+  }
+}
+    ${WorkspacePlanFieldsFragmentDoc}`;
+export const GetWorkspaceLimitsDocument = `
+    query GetWorkspaceLimits($id: String!) {
+  workspace(id: $id) {
+    plan {
+      limits {
+        ...WorkspaceLimitsFields
+      }
+    }
+  }
+}
+    ${WorkspaceLimitsFieldsFragmentDoc}`;
+export const GetWorkspaceUsageDocument = `
+    query GetWorkspaceUsage($id: String!) {
+  workspace(id: $id) {
+    plan {
+      usage {
+        ...WorkspacePlanUsageFields
+      }
+    }
+  }
+}
+    ${WorkspacePlanUsageFieldsFragmentDoc}`;
+export const GetWorkspaceSubscriptionDocument = `
+    query GetWorkspaceSubscription($id: String!) {
+  workspace(id: $id) {
+    subscription {
+      ...WorkspaceSubscriptionFields
+    }
+  }
+}
+    ${WorkspaceSubscriptionFieldsFragmentDoc}`;
+export const GetWorkspaceSeatsDocument = `
+    query GetWorkspaceSeats($id: String!) {
+  workspace(id: $id) {
+    seats {
+      ...WorkspaceSubscriptionSeatsFields
+    }
+  }
+}
+    ${WorkspaceSubscriptionSeatsFieldsFragmentDoc}`;
+export const GetWorkspaceBillingDocument = `
+    query GetWorkspaceBilling($id: String!) {
+  workspace(id: $id) {
+    plan {
+      ...WorkspacePlanFields
+    }
+    subscription {
+      ...WorkspaceSubscriptionFields
+    }
+    seats {
+      ...WorkspaceSubscriptionSeatsFields
+    }
+  }
+}
+    ${WorkspacePlanFieldsFragmentDoc}
+${WorkspaceSubscriptionFieldsFragmentDoc}
+${WorkspaceSubscriptionSeatsFieldsFragmentDoc}`;
 export const OnWorkspaceUpdatedDocument = `
     subscription OnWorkspaceUpdated($workspaceId: String, $workspaceSlug: String) {
   workspaceUpdated(workspaceId: $workspaceId, workspaceSlug: $workspaceSlug) {
@@ -10172,6 +10513,27 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     OnCommentActivity(variables: OnCommentActivitySubscriptionVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<OnCommentActivitySubscription> {
       return withWrapper((wrappedRequestHeaders) => client.request<OnCommentActivitySubscription>({ document: OnCommentActivityDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'OnCommentActivity', 'subscription', variables);
+    },
+    CreateDashboard(variables: CreateDashboardMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<CreateDashboardMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<CreateDashboardMutation>({ document: CreateDashboardDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'CreateDashboard', 'mutation', variables);
+    },
+    UpdateDashboard(variables: UpdateDashboardMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<UpdateDashboardMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<UpdateDashboardMutation>({ document: UpdateDashboardDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'UpdateDashboard', 'mutation', variables);
+    },
+    DeleteDashboard(variables: DeleteDashboardMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<DeleteDashboardMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<DeleteDashboardMutation>({ document: DeleteDashboardDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'DeleteDashboard', 'mutation', variables);
+    },
+    DuplicateDashboard(variables: DuplicateDashboardMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<DuplicateDashboardMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<DuplicateDashboardMutation>({ document: DuplicateDashboardDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'DuplicateDashboard', 'mutation', variables);
+    },
+    GetDashboard(variables: GetDashboardQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetDashboardQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetDashboardQuery>({ document: GetDashboardDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetDashboard', 'query', variables);
+    },
+    ListWorkspaceDashboards(variables: ListWorkspaceDashboardsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<ListWorkspaceDashboardsQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<ListWorkspaceDashboardsQuery>({ document: ListWorkspaceDashboardsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'ListWorkspaceDashboards', 'query', variables);
+    },
+    ListProjectDashboards(variables: ListProjectDashboardsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<ListProjectDashboardsQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<ListProjectDashboardsQuery>({ document: ListProjectDashboardsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'ListProjectDashboards', 'query', variables);
     },
     StartFileImport(variables: StartFileImportMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<StartFileImportMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<StartFileImportMutation>({ document: StartFileImportDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'StartFileImport', 'mutation', variables);
@@ -10298,6 +10660,24 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     ListWorkspaces(variables?: ListWorkspacesQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<ListWorkspacesQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<ListWorkspacesQuery>({ document: ListWorkspacesDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'ListWorkspaces', 'query', variables);
+    },
+    GetWorkspacePlan(variables: GetWorkspacePlanQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspacePlanQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspacePlanQuery>({ document: GetWorkspacePlanDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspacePlan', 'query', variables);
+    },
+    GetWorkspaceLimits(variables: GetWorkspaceLimitsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspaceLimitsQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspaceLimitsQuery>({ document: GetWorkspaceLimitsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspaceLimits', 'query', variables);
+    },
+    GetWorkspaceUsage(variables: GetWorkspaceUsageQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspaceUsageQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspaceUsageQuery>({ document: GetWorkspaceUsageDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspaceUsage', 'query', variables);
+    },
+    GetWorkspaceSubscription(variables: GetWorkspaceSubscriptionQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspaceSubscriptionQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspaceSubscriptionQuery>({ document: GetWorkspaceSubscriptionDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspaceSubscription', 'query', variables);
+    },
+    GetWorkspaceSeats(variables: GetWorkspaceSeatsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspaceSeatsQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspaceSeatsQuery>({ document: GetWorkspaceSeatsDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspaceSeats', 'query', variables);
+    },
+    GetWorkspaceBilling(variables: GetWorkspaceBillingQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<GetWorkspaceBillingQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetWorkspaceBillingQuery>({ document: GetWorkspaceBillingDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'GetWorkspaceBilling', 'query', variables);
     },
     OnWorkspaceUpdated(variables?: OnWorkspaceUpdatedSubscriptionVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<OnWorkspaceUpdatedSubscription> {
       return withWrapper((wrappedRequestHeaders) => client.request<OnWorkspaceUpdatedSubscription>({ document: OnWorkspaceUpdatedDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'OnWorkspaceUpdated', 'subscription', variables);

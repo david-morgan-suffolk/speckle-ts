@@ -1,5 +1,14 @@
 import { Node } from "./Node.js";
 import { InsightTemplate, listWorkspaceInsightTemplates } from "./InsightTemplate.js";
+import {
+  Dashboard,
+  createDashboard,
+  iterateWorkspaceDashboards,
+  listAllWorkspaceDashboards,
+  listWorkspaceDashboards,
+  type CreateDashboardInput,
+  type WorkspaceDashboardsListOptions,
+} from "./Dashboard.js";
 import { assertExists, parseOrThrow } from "../transport/validate.js";
 import {
   WorkspaceInfoSchema,
@@ -11,7 +20,9 @@ import {
 } from "../schemas.js";
 import type { Speckle } from "../client.js";
 import type {
+  DashboardInfo,
   InsightTemplateInfo,
+  PageInfo,
   WorkspaceInfo,
   WorkspaceLimits,
   WorkspacePlanInfo,
@@ -303,6 +314,33 @@ export class Workspace extends Node<WorkspaceInfo> {
 
   listInsightTemplates(type?: string): Promise<InsightTemplateInfo[]> {
     return listWorkspaceInsightTemplates(this.speckle, this.id, type);
+  }
+
+  dashboard(id: string): Dashboard {
+    return new Dashboard(this.speckle, id);
+  }
+
+  listDashboards(
+    opts?: WorkspaceDashboardsListOptions,
+  ): Promise<PageInfo<DashboardInfo>> {
+    return listWorkspaceDashboards(this.speckle, this.id, opts);
+  }
+
+  listAllDashboards(
+    opts?: Omit<WorkspaceDashboardsListOptions, "cursor">,
+  ): Promise<DashboardInfo[]> {
+    return listAllWorkspaceDashboards(this.speckle, this.id, opts);
+  }
+
+  dashboards(
+    opts?: Omit<WorkspaceDashboardsListOptions, "cursor">,
+  ): AsyncIterable<DashboardInfo> {
+    return iterateWorkspaceDashboards(this.speckle, this.id, opts);
+  }
+
+  async createDashboard(input: CreateDashboardInput): Promise<Dashboard> {
+    const created = await createDashboard(this.speckle, { id: this.id }, input);
+    return new Dashboard(this.speckle, created.id);
   }
 
   plan(): Promise<WorkspacePlanInfo | null> {

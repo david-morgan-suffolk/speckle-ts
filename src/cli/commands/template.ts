@@ -51,6 +51,7 @@ const apply = defineCommand({
       emit(`  models:      ${Object.keys(result.modelIds).length}`, "text");
       emit(`  insights:    ${result.insightIds.length}`, "text");
       emit(`  automations: ${result.automationIds.length}`, "text");
+      emit(`  dashboards:  ${result.dashboardIds.length}`, "text");
     });
   },
 });

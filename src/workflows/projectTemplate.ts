@@ -3,6 +3,7 @@ import { ProjectTemplateSpecSchema } from "@/schemas.js";
 import type {
   ProjectTemplateSpec,
   ProjectTemplateResult,
+  TemplateDashboard,
   TemplateInsight,
 } from "@/types.js";
 import { getSdk, type Sdk, ProjectVisibility } from "@/generated/sdk.js";
@@ -14,7 +15,8 @@ export type ProjectTemplateStage =
   | "createProject"
   | "createModel"
   | "createInsight"
-  | "createAutomation";
+  | "createAutomation"
+  | "createDashboard";
 
 export class ProjectTemplateError extends Error {
   override readonly name = "ProjectTemplateError";
@@ -86,6 +88,44 @@ async function applyInsight(
     },
   });
   return res.insightMutations.create.id;
+}
+
+async function applyDashboard(
+  sdk: Sdk,
+  projectId: string,
+  automationsByName: Record<string, string>,
+  dashboard: TemplateDashboard,
+): Promise<string> {
+  const dup = await sdk.DuplicateDashboard({
+    id: dashboard.fromDashboardId,
+    name: dashboard.name,
+  });
+  const newId = dup.dashboardMutations.duplicate.id;
+
+  let automationId: string | undefined;
+  if (dashboard.automationRef !== undefined) {
+    const resolved = automationsByName[dashboard.automationRef];
+    if (!resolved) {
+      throw new Error(
+        `Dashboard "${dashboard.name}" references unknown automation "${dashboard.automationRef}". Available: ${
+          Object.keys(automationsByName).join(", ") || "(none)"
+        }`,
+      );
+    }
+    automationId = resolved;
+  }
+
+  const link: { projectId: string; automationId?: string } = { projectId };
+  if (automationId !== undefined) link.automationId = automationId;
+
+  await sdk.UpdateDashboard({
+    input: {
+      id: newId,
+      dashboardProjectLinks: [link],
+    },
+  });
+
+  return newId;
 }
 
 export async function applyProjectTemplate(
@@ -173,6 +213,7 @@ export async function applyProjectTemplate(
   }
 
   const automationIds: string[] = [];
+  const automationsByName: Record<string, string> = {};
   partial.automationIds = automationIds;
   for (const a of validated.automations ?? []) {
     try {
@@ -184,7 +225,9 @@ export async function applyProjectTemplate(
           ...(a.isTestAutomation !== undefined ? { isTestAutomation: a.isTestAutomation } : {}),
         },
       });
-      automationIds.push(res.projectMutations.automationMutations.create.id);
+      const id = res.projectMutations.automationMutations.create.id;
+      automationIds.push(id);
+      automationsByName[a.name] = id;
     } catch (err) {
       throw new ProjectTemplateError(
         "createAutomation",
@@ -195,5 +238,21 @@ export async function applyProjectTemplate(
     }
   }
 
-  return { projectId, modelIds, insightIds, automationIds };
+  const dashboardIds: string[] = [];
+  partial.dashboardIds = dashboardIds;
+  for (const d of validated.dashboards ?? []) {
+    try {
+      const id = await applyDashboard(sdk, projectId, automationsByName, d);
+      dashboardIds.push(id);
+    } catch (err) {
+      throw new ProjectTemplateError(
+        "createDashboard",
+        `Dashboard "${d.name}" creation failed`,
+        partial,
+        err,
+      );
+    }
+  }
+
+  return { projectId, modelIds, insightIds, automationIds, dashboardIds };
 }

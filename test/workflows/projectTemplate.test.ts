@@ -50,6 +50,102 @@ test("happy path: dispatches in order and returns wired IDs", async () => {
   expect(result.modelIds["structure"]).toBe("model_2");
   expect(result.insightIds).toEqual(["ins_1", "ins_2"]);
   expect(result.automationIds).toEqual(["auto_1"]);
+  expect(result.dashboardIds).toEqual([]);
+});
+
+test("dashboards: clone-from-existing and rebind project link", async () => {
+  const { sk, callsFor } = mockSpeckle(templateRouter().handlers);
+  const spec: ProjectTemplateSpec = {
+    workspaceId: "ws_1",
+    project: { name: "WithDash" },
+    dashboards: [
+      { name: "Exec view", fromDashboardId: "src_dash_1" },
+    ],
+  };
+  const result = await applyProjectTemplate(sk, spec);
+  await sk.dispose();
+
+  const dup = callsFor("DuplicateDashboard")[0];
+  expect(dup).toBeDefined();
+  expect(dup!.variables["id"]).toBe("src_dash_1");
+  expect(dup!.variables["name"]).toBe("Exec view");
+
+  const upd = callsFor("UpdateDashboard")[0];
+  expect(upd).toBeDefined();
+  const input = upd!.variables["input"] as {
+    id: string;
+    dashboardProjectLinks: { projectId: string; automationId?: string }[];
+  };
+  expect(input.id).toBe("dash_1");
+  expect(input.dashboardProjectLinks).toEqual([{ projectId: "proj_1" }]);
+
+  expect(result.dashboardIds).toEqual(["dash_1"]);
+});
+
+test("dashboards: automationRef resolves to created automation id", async () => {
+  const { sk, callsFor } = mockSpeckle(templateRouter().handlers);
+  const spec: ProjectTemplateSpec = {
+    workspaceId: "ws_1",
+    project: { name: "WithAutoDash" },
+    automations: [{ name: "Nightly", enabled: false }],
+    dashboards: [
+      { name: "Ops", fromDashboardId: "src_dash_2", automationRef: "Nightly" },
+    ],
+  };
+  await applyProjectTemplate(sk, spec);
+  await sk.dispose();
+
+  const upd = callsFor("UpdateDashboard")[0];
+  const input = upd!.variables["input"] as {
+    dashboardProjectLinks: { projectId: string; automationId?: string }[];
+  };
+  expect(input.dashboardProjectLinks).toEqual([
+    { projectId: "proj_1", automationId: "auto_1" },
+  ]);
+});
+
+test("dashboards: unknown automationRef throws createDashboard error", async () => {
+  const { sk } = mockSpeckle(templateRouter().handlers);
+  const spec: ProjectTemplateSpec = {
+    workspaceId: "ws_1",
+    project: { name: "BadRef" },
+    dashboards: [
+      { name: "X", fromDashboardId: "src_1", automationRef: "missing" },
+    ],
+  };
+  let caught: unknown;
+  try {
+    await applyProjectTemplate(sk, spec);
+  } catch (e) {
+    caught = e;
+  }
+  await sk.dispose();
+  expect(caught).toBeInstanceOf(ProjectTemplateError);
+  expect((caught as ProjectTemplateError).stage).toBe("createDashboard");
+  expect((caught as ProjectTemplateError).partial.dashboardIds).toEqual([]);
+});
+
+test("dashboards: duplicate failure surfaces createDashboard stage with prior partial", async () => {
+  const { sk } = mockSpeckle(
+    templateRouter({ dashboardDuplicateFailsAt: "boom" }).handlers,
+  );
+  const spec: ProjectTemplateSpec = {
+    workspaceId: "ws_1",
+    project: { name: "FailDup" },
+    dashboards: [{ name: "X", fromDashboardId: "boom" }],
+  };
+  let caught: unknown;
+  try {
+    await applyProjectTemplate(sk, spec);
+  } catch (e) {
+    caught = e;
+  }
+  await sk.dispose();
+  expect(caught).toBeInstanceOf(ProjectTemplateError);
+  const err = caught as ProjectTemplateError;
+  expect(err.stage).toBe("createDashboard");
+  expect(err.partial.projectId).toBe("proj_1");
+  expect(err.partial.dashboardIds).toEqual([]);
 });
 
 test("resolves modelRefs to created model ids on inline insight", async () => {
