@@ -47,7 +47,7 @@ async function runWithConcurrency<T>(
   return results;
 }
 
-async function expandHiddenChildren(
+export async function expandHiddenChildren(
   speckle: Speckle,
   projectId: string,
   item: ModelsTreeItem,
