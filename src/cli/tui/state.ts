@@ -174,12 +174,12 @@ export function useDashboard(opts: BuildSpeckleOptions): UseDashboard {
   useEffect(() => {
     const mgr = subMgrRef.current;
     if (!mgr || !currentRow) return;
-    const target = commentTargetFor(currentRow, rows);
+    const target = commentTargetFor(currentRow);
     mgr.setContext({
       projectId: currentRow.parentProjectId,
       ...(target ? { commentTarget: target } : {}),
     });
-  }, [currentRow, rows]);
+  }, [currentRow]);
 
   useEffect(() => {
     const mgr = subMgrRef.current;
@@ -384,7 +384,7 @@ async function loadChildren(
   node.children = [];
 }
 
-function commentTargetFor(row: FlatRow, _rows: FlatRow[]): CommentTarget | undefined {
+function commentTargetFor(row: FlatRow): CommentTarget | undefined {
   const node = row.node;
   if (node.kind !== "version") return undefined;
   const parts = node.id.split(":");

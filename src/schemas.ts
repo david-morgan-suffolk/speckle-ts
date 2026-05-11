@@ -312,3 +312,135 @@ export const ProjectTemplateResultSchema = z.object({
   insightIds: z.array(z.string()),
   automationIds: z.array(z.string()),
 });
+
+export const WebhookInfoSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  triggers: z.array(z.string()),
+  enabled: z.boolean().nullable(),
+  description: z.string().nullable(),
+});
+
+export const WebhookEventInfoSchema = z.object({
+  id: z.string(),
+  webhookId: z.string(),
+  payload: z.string(),
+  status: z.number(),
+  statusInfo: z.string(),
+  lastUpdate: z.string(),
+  retryCount: z.number(),
+});
+
+export const IssueStatusSchema = z.enum(["open", "readyForReview", "resolved"]);
+
+export const IssuePrioritySchema = z.string();
+
+export const IssueParticipantInfoSchema = z.object({
+  id: z.string(),
+  user: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+});
+
+export const IssueInfoSchema = z.object({
+  id: z.string(),
+  identifier: z.string(),
+  number: z.number(),
+  projectId: z.string(),
+  title: z.string().nullable(),
+  rawDescription: z.string().nullable(),
+  status: IssueStatusSchema,
+  priority: IssuePrioritySchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  dueDate: z.string().nullable(),
+  viewedAt: z.string().nullable(),
+  resourceIdString: z.string().nullable(),
+  author: IssueParticipantInfoSchema.nullable(),
+  assignee: IssueParticipantInfoSchema.nullable(),
+});
+
+export const IssueReplyInfoSchema = z.object({
+  id: z.string(),
+  issueId: z.string(),
+  projectId: z.string(),
+  rawDescription: z.string().nullable(),
+  createdAt: z.string(),
+  author: IssueParticipantInfoSchema.nullable(),
+});
+
+export const IssuesPageSchema = PageInfoSchema(IssueInfoSchema);
+export const IssueRepliesPageSchema = PageInfoSchema(IssueReplyInfoSchema);
+
+export const AutomateRunStatusSchema = z.enum([
+  "CANCELED",
+  "EXCEPTION",
+  "FAILED",
+  "INITIALIZING",
+  "PENDING",
+  "RUNNING",
+  "SUCCEEDED",
+  "TIMEOUT",
+]);
+
+export const AutomateFunctionRunInfoSchema = z.object({
+  id: z.string(),
+  functionId: z.string().nullable(),
+  functionReleaseId: z.string().nullable(),
+  status: AutomateRunStatusSchema,
+  statusMessage: z.string().nullable(),
+  contextView: z.string().nullable(),
+  elapsed: z.number(),
+  results: z.record(z.string(), z.unknown()).nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const AutomateRunInfoSchema = z.object({
+  id: z.string(),
+  automationId: z.string(),
+  automationRevisionId: z.string(),
+  status: AutomateRunStatusSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  functionRuns: z.array(AutomateFunctionRunInfoSchema).optional().default([]),
+});
+
+export const AutomationInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  enabled: z.boolean(),
+  isTestAutomation: z.boolean().optional().default(false),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const AutomationsPageSchema = PageInfoSchema(AutomationInfoSchema);
+export const AutomateRunsPageSchema = PageInfoSchema(AutomateRunInfoSchema);
+
+export const FileImportJobSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  modelId: z.string().nullable(),
+  modelName: z.string(),
+  fileName: z.string(),
+  fileType: z.string(),
+  fileSize: z.number(),
+  convertedStatus: z.number(),
+  convertedMessage: z.string().nullable(),
+  convertedCommitId: z.string().nullable(),
+  convertedVersionId: z.string().nullable(),
+  uploadComplete: z.boolean(),
+  uploadDate: z.string(),
+  updatedAt: z.string(),
+  userId: z.string(),
+});
+
+export const UploadUrlSchema = z.object({
+  url: z.string(),
+  fileId: z.string(),
+  additionalRequestHeaders: z.array(
+    z.object({ header: z.string(), value: z.string() }),
+  ),
+});

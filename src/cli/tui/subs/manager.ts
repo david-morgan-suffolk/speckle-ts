@@ -1,6 +1,6 @@
 import type { Speckle } from "@/client.js";
 import { Project } from "@/nodes/Project.js";
-import { subscribe } from "@/transport/ws.js";
+import { lifecycleEvents, subscribe } from "@/transport/ws.js";
 import type { DashboardEvent, SubChannel } from "./events.js";
 
 export type WsStatus = "idle" | "connecting" | "open" | "error";
@@ -47,21 +47,14 @@ export class SubscriptionManager {
   }
 
   private installWsHooks(): void {
-    const ws = this.speckle.ws as unknown as {
-      onConnected: (cb: () => void) => () => void;
-      onConnecting: (cb: () => void) => () => void;
-      onReconnecting: (cb: () => void) => () => void;
-      onReconnected: (cb: () => void) => () => void;
-      onDisconnected: (cb: () => void) => () => void;
-      onError: (cb: (e: unknown) => void) => () => void;
-    };
-    this.wsHooks.push(ws.onConnecting(() => this.onStatus("connecting")));
-    this.wsHooks.push(ws.onReconnecting(() => this.onStatus("connecting")));
-    this.wsHooks.push(ws.onConnected(() => this.onStatus("open")));
-    this.wsHooks.push(ws.onReconnected(() => this.onStatus("open")));
-    this.wsHooks.push(ws.onDisconnected(() => this.onStatus("idle")));
+    const events = lifecycleEvents(this.speckle.ws);
+    this.wsHooks.push(events.onConnecting(() => this.onStatus("connecting")));
+    this.wsHooks.push(events.onReconnecting(() => this.onStatus("connecting")));
+    this.wsHooks.push(events.onConnected(() => this.onStatus("open")));
+    this.wsHooks.push(events.onReconnected(() => this.onStatus("open")));
+    this.wsHooks.push(events.onDisconnected(() => this.onStatus("idle")));
     this.wsHooks.push(
-      ws.onError((err) => {
+      events.onError((err) => {
         this.onStatus("error");
         this.onError(err);
       }),
@@ -174,6 +167,7 @@ export class SubscriptionManager {
         },
         (data) => this.emitComments(projectId, data),
         (err) => this.onError(err),
+        this.speckle.hooks,
       );
     }
 

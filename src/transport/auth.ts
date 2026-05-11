@@ -1,3 +1,3 @@
-export function bearer(token: string | undefined): string | null {
-  return token ? `Bearer ${token}` : null;
+export function bearer(token: string | undefined): string | undefined {
+  return token ? `Bearer ${token}` : undefined;
 }

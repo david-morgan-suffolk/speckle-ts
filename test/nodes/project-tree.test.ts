@@ -4,6 +4,13 @@ import {
   ModelsTreeItemSchema,
   ModelsTreeItemPageSchema,
 } from "../../src/schemas.js";
+import {
+  mockSpeckle,
+  modelChildrenTreeHandler,
+  modelsTreeItemFixture,
+  projectModelsTreeHandler,
+  sequence,
+} from "../_helpers/index.js";
 
 const M = (id: string, name: string) => ({
   id,
@@ -53,62 +60,43 @@ test("ModelsTreeItemPageSchema parses collection envelope", () => {
 });
 
 test("Project.listModelsTree fetches and validates one page", async () => {
-  let calls = 0;
-  const fakeFetch = (async () => {
-    calls += 1;
-    return new Response(
-      JSON.stringify({
-        data: {
-          project: {
-            modelsTree: {
-              totalCount: 1,
-              cursor: null,
-              items: [treeItem("t1", "alpha", "m1")],
-            },
-          },
-        },
-      }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    );
-  }) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk, callsFor } = mockSpeckle({
+    GetProjectModelsTree: projectModelsTreeHandler({
+      totalCount: 1,
+      cursor: null,
+      items: [modelsTreeItemFixture("alpha", "m1")],
+    }),
+  });
   const page = await sk.project("p1").listModelsTree();
-  expect(calls).toBe(1);
+  expect(callsFor("GetProjectModelsTree")).toHaveLength(1);
   expect(page.totalCount).toBe(1);
   expect(page.items[0]?.model?.id).toBe("m1");
   await sk.dispose();
 });
 
 test("Project.listAllModelsTree pages until cursor is null", async () => {
-  const pages = [
-    {
-      totalCount: 3,
-      cursor: "c1",
-      items: [treeItem("t1", "a", "m1")],
-    },
-    {
-      totalCount: 3,
-      cursor: "c2",
-      items: [treeItem("t2", "b", "m2")],
-    },
-    {
-      totalCount: 3,
-      cursor: null,
-      items: [treeItem("t3", "c", "m3")],
-    },
-  ];
-  let i = 0;
-  const fakeFetch = (async () => {
-    const body = { data: { project: { modelsTree: pages[i++] } } };
-    return new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
-  }) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+  const { sk, callsFor } = mockSpeckle({
+    GetProjectModelsTree: sequence([
+      projectModelsTreeHandler({
+        totalCount: 3,
+        cursor: "c1",
+        items: [modelsTreeItemFixture("a", "m1")],
+      }),
+      projectModelsTreeHandler({
+        totalCount: 3,
+        cursor: "c2",
+        items: [modelsTreeItemFixture("b", "m2")],
+      }),
+      projectModelsTreeHandler({
+        totalCount: 3,
+        cursor: null,
+        items: [modelsTreeItemFixture("c", "m3")],
+      }),
+    ]),
+  });
   const items = await sk.project("p1").listAllModelsTree();
   expect(items).toHaveLength(3);
-  expect(i).toBe(3);
+  expect(callsFor("GetProjectModelsTree")).toHaveLength(3);
   await sk.dispose();
 });
 
@@ -119,27 +107,49 @@ test("Project.listModelsTree is lazy — no fetch on construction", () => {
   expect(fakeFetch).not.toHaveBeenCalled();
 });
 
-test("Project.modelChildrenTree fetches subtree for fullName", async () => {
-  let capturedBody: unknown = null;
-  const fakeFetch = (async (_url: string | URL | Request, init?: RequestInit) => {
-    capturedBody = init?.body ? JSON.parse(init.body as string) : null;
-    return new Response(
-      JSON.stringify({
-        data: {
-          project: {
-            modelChildrenTree: [treeItem("c1", "foo/bar", "m_bar")],
-          },
-        },
+test("Project.modelsTree() iterator yields across pages and stops early", async () => {
+  const { sk, callsFor } = mockSpeckle({
+    GetProjectModelsTree: sequence([
+      projectModelsTreeHandler({
+        totalCount: 3,
+        cursor: "c1",
+        items: [modelsTreeItemFixture("a", "m1")],
       }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    );
-  }) as unknown as typeof fetch;
-  const sk = new Speckle({ fetch: fakeFetch });
+      projectModelsTreeHandler({
+        totalCount: 3,
+        cursor: "c2",
+        items: [modelsTreeItemFixture("b", "m2")],
+      }),
+      projectModelsTreeHandler({
+        totalCount: 3,
+        cursor: null,
+        items: [modelsTreeItemFixture("c", "m3")],
+      }),
+    ]),
+  });
+
+  const seen: string[] = [];
+  for await (const item of sk.project("p1").modelsTree()) {
+    seen.push(item.id);
+    if (seen.length === 2) break;
+  }
+  expect(seen).toEqual(["t_a", "t_b"]);
+  expect(callsFor("GetProjectModelsTree")).toHaveLength(2);
+  await sk.dispose();
+});
+
+test("Project.modelChildrenTree fetches subtree for fullName", async () => {
+  const { sk, callsFor } = mockSpeckle({
+    GetModelChildrenTree: modelChildrenTreeHandler([
+      modelsTreeItemFixture("foo/bar", "m_bar"),
+    ]),
+  });
   const children = await sk.project("p1").modelChildrenTree("foo");
   expect(children).toHaveLength(1);
   expect(children[0]?.fullName).toBe("foo/bar");
-  expect((capturedBody as { variables: { fullName: string } }).variables.fullName).toBe(
-    "foo",
-  );
+  expect(callsFor("GetModelChildrenTree")[0]?.variables).toMatchObject({
+    projectId: "p1",
+    fullName: "foo",
+  });
   await sk.dispose();
 });

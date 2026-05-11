@@ -32,31 +32,31 @@ const USER_QUERY = /* GraphQL */ `
 `;
 
 export class User extends Node<UserInfo> {
-  readonly id: string | null;
+  readonly id: string;
 
-  private constructor(speckle: Speckle, id: string | null) {
+  constructor(speckle: Speckle, id: string) {
     super(speckle, null);
     this.id = id;
   }
 
-  static byId(speckle: Speckle, id: string): User {
-    return new User(speckle, id);
+  protected async fetch(): Promise<UserInfo> {
+    const data = await this.speckle.http.request<{ user: unknown }, { id: string }>(
+      USER_QUERY,
+      { id: this.id },
+    );
+    const user = assertExists(data.user, "User", this.id);
+    return parseOrThrow("User", UserInfoSchema, user);
   }
+}
 
-  static active(speckle: Speckle): User {
-    return new User(speckle, null);
+export class ActiveUser extends Node<UserInfo> {
+  constructor(speckle: Speckle) {
+    super(speckle, null);
   }
 
   protected async fetch(): Promise<UserInfo> {
-    if (this.id === null) {
-      const data = await this.speckle.http.request<{ activeUser: unknown }>(ACTIVE_USER_QUERY);
-      const user = assertExists(data.activeUser, "ActiveUser");
-      return parseOrThrow("ActiveUser", UserInfoSchema, user);
-    }
-    const data = await this.speckle.http.request<{ user: unknown }, { id: string }>(USER_QUERY, {
-      id: this.id,
-    });
-    const user = assertExists(data.user, "User", this.id);
-    return parseOrThrow("User", UserInfoSchema, user);
+    const data = await this.speckle.http.request<{ activeUser: unknown }>(ACTIVE_USER_QUERY);
+    const user = assertExists(data.activeUser, "ActiveUser");
+    return parseOrThrow("ActiveUser", UserInfoSchema, user);
   }
 }

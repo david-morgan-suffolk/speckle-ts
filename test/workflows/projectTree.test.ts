@@ -1,104 +1,69 @@
 import { test, expect } from "bun:test";
-import { Speckle } from "../../src/client.js";
 import { extractProjectModelVersionsTree } from "../../src/workflows/projectTree.js";
+import {
+  mockSpeckle,
+  modelsTreeItemFixture,
+  versionFixture,
+  type GraphQLHandler,
+} from "../_helpers/index.js";
 
-const M = (id: string, name: string) => ({
-  id,
-  name,
-  description: null,
-  createdAt: "2026-01-01T00:00:00Z",
-  updatedAt: "2026-01-01T00:00:00Z",
-});
-
-const treeItem = (
-  id: string,
-  fullName: string,
-  modelId: string | null,
-  children: unknown[] = [],
-) => ({
-  id,
-  name: fullName.split("/").pop()!,
-  fullName,
-  hasChildren: children.length > 0,
-  updatedAt: "2026-01-01T00:00:00Z",
-  model: modelId ? M(modelId, fullName.split("/").pop()!) : null,
-  children,
-});
+const treeFixture = () => [
+  modelsTreeItemFixture("foo", null, [
+    modelsTreeItemFixture("foo/a", "m_a"),
+    modelsTreeItemFixture("foo/b", "m_b"),
+  ]),
+  modelsTreeItemFixture("solo", "m_solo"),
+];
 
 const versionPayload = (modelId: string) => ({
   totalCount: 1,
   cursor: null,
   items: [
-    {
-      id: `v_${modelId}`,
+    versionFixture(`v_${modelId}`, {
       message: `commit on ${modelId}`,
       sourceApplication: "rhino",
-      referencedObject: `obj_${modelId}`,
-      createdAt: "2026-04-01T00:00:00Z",
-      authorUser: { id: "u1", name: "alice" },
-    },
+    }),
   ],
 });
 
-interface Call {
-  operationName: string;
-  variables: Record<string, unknown>;
+interface InflightTracker {
+  wrap: (h: GraphQLHandler) => GraphQLHandler;
+  peak: () => number;
 }
 
-function makeFetch(): { fetch: typeof fetch; calls: Call[]; concurrent: () => number } {
-  const calls: Call[] = [];
+function inflightTracker(delayMs = 5): InflightTracker {
   let inflight = 0;
   let peak = 0;
-  const f = (async (_url: unknown, init?: RequestInit) => {
-    const body = JSON.parse((init?.body as string) ?? "{}") as {
-      query?: string;
-      variables?: Record<string, unknown>;
-    };
-    const opName = body.query?.match(/(?:query|mutation)\s+(\w+)/)?.[1] ?? "Unknown";
-    calls.push({ operationName: opName, variables: body.variables ?? {} });
-
-    inflight++;
-    if (inflight > peak) peak = inflight;
-    try {
-      await new Promise((r) => setTimeout(r, 5));
-      const json = (data: unknown) =>
-        new Response(JSON.stringify({ data }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        });
-
-      if (opName === "GetProjectModelsTree") {
-        return json({
-          project: {
-            modelsTree: {
-              totalCount: 2,
-              cursor: null,
-              items: [
-                treeItem("t_root", "foo", null, [
-                  treeItem("t_a", "foo/a", "m_a"),
-                  treeItem("t_b", "foo/b", "m_b"),
-                ]),
-                treeItem("t_solo", "solo", "m_solo"),
-              ],
-            },
-          },
-        });
-      }
-      if (opName === "GetModelVersions") {
-        const modelId = (body.variables?.["modelId"] as string) ?? "?";
-        return json({ project: { model: { versions: versionPayload(modelId) } } });
-      }
-      return json({});
-    } finally {
-      inflight--;
-    }
-  }) as unknown as typeof fetch;
-  return { fetch: f, calls, concurrent: () => peak };
+  return {
+    peak: () => peak,
+    wrap:
+      (h) =>
+      async (req) => {
+        inflight++;
+        if (inflight > peak) peak = inflight;
+        try {
+          await new Promise((r) => setTimeout(r, delayMs));
+          return await h(req);
+        } finally {
+          inflight--;
+        }
+      },
+  };
 }
 
 test("extractProjectModelVersionsTree fetches tree + versions, attaches by model id", async () => {
-  const { fetch, calls } = makeFetch();
-  const sk = new Speckle({ fetch });
+  const { sk, callsFor } = mockSpeckle(
+    {
+      GetProjectModelsTree: () => ({
+        project: { modelsTree: { totalCount: 2, cursor: null, items: treeFixture() } },
+      }),
+      GetModelVersions: (req) => {
+        const modelId = req.variables["modelId"] as string;
+        return { project: { model: { versions: versionPayload(modelId) } } };
+      },
+    },
+    { unhandled: "empty" },
+  );
   const tree = await extractProjectModelVersionsTree(sk, "p1");
   expect(tree).toHaveLength(2);
 
@@ -114,29 +79,80 @@ test("extractProjectModelVersionsTree fetches tree + versions, attaches by model
   expect(solo.model?.id).toBe("m_solo");
   expect(solo.versions[0]?.id).toBe("v_m_solo");
 
-  const treeCalls = calls.filter((c) => c.operationName === "GetProjectModelsTree");
-  const versionCalls = calls.filter((c) => c.operationName === "GetModelVersions");
-  expect(treeCalls).toHaveLength(1);
-  expect(versionCalls).toHaveLength(3);
+  expect(callsFor("GetProjectModelsTree")).toHaveLength(1);
+  expect(callsFor("GetModelVersions")).toHaveLength(3);
 
   await sk.dispose();
 });
 
-test("extractProjectModelVersionsTree honors concurrency cap", async () => {
-  const { fetch, concurrent, calls } = makeFetch();
-  const sk = new Speckle({ fetch });
+test("extractProjectModelVersionsTree honors concurrency cap on full-pagination path", async () => {
+  const tracker = inflightTracker(5);
+  const { sk, callsFor } = mockSpeckle(
+    {
+      GetProjectModelsTree: tracker.wrap(() => ({
+        project: { modelsTree: { totalCount: 2, cursor: null, items: treeFixture() } },
+      })),
+      GetModelVersions: tracker.wrap((req) => {
+        const modelId = req.variables["modelId"] as string;
+        return { project: { model: { versions: versionPayload(modelId) } } };
+      }),
+    },
+    { unhandled: "empty" },
+  );
+  // Full-pagination path (no versionsLimit) keeps the per-model fan-out;
+  // batching does not apply because each model walks its own cursor.
   await extractProjectModelVersionsTree(sk, "p1", { concurrency: 2 });
-  expect(concurrent()).toBeLessThanOrEqual(2);
-  expect(calls.filter((c) => c.operationName === "GetModelVersions")).toHaveLength(3);
+  expect(tracker.peak()).toBeLessThanOrEqual(2);
+  expect(callsFor("GetModelVersions")).toHaveLength(3);
   await sk.dispose();
 });
 
-test("extractProjectModelVersionsTree with versionsLimit uses single page only", async () => {
-  const { fetch, calls } = makeFetch();
-  const sk = new Speckle({ fetch });
+test("extractProjectModelVersionsTree with versionsLimit batches all models into one query", async () => {
+  const { sk, callsFor } = mockSpeckle(
+    {
+      GetProjectModelsTree: () => ({
+        project: { modelsTree: { totalCount: 2, cursor: null, items: treeFixture() } },
+      }),
+      BatchedModelVersions: (req) => {
+        const project: Record<string, unknown> = {};
+        for (let i = 0; i < 100; i++) {
+          const modelId = req.variables[`modelId_${i}`] as string | undefined;
+          if (!modelId) break;
+          project[`m_${i}`] = { versions: versionPayload(modelId) };
+        }
+        return { project };
+      },
+    },
+    { unhandled: "empty" },
+  );
   await extractProjectModelVersionsTree(sk, "p1", { versionsLimit: 5 });
-  for (const c of calls.filter((c) => c.operationName === "GetModelVersions")) {
-    expect(c.variables["limit"]).toBe(5);
+
+  const batched = callsFor("BatchedModelVersions");
+  expect(batched).toHaveLength(1);
+  // Three model aliases with limit_i = 5 each.
+  for (let i = 0; i < 3; i++) {
+    expect(batched[0]?.variables[`limit_${i}`]).toBe(5);
   }
+  await sk.dispose();
+});
+
+test("extractProjectModelVersionsTree opts out of batching when batchVersions=false", async () => {
+  const { sk, callsFor } = mockSpeckle(
+    {
+      GetProjectModelsTree: () => ({
+        project: { modelsTree: { totalCount: 2, cursor: null, items: treeFixture() } },
+      }),
+      GetModelVersions: (req) => {
+        const modelId = req.variables["modelId"] as string;
+        return { project: { model: { versions: versionPayload(modelId) } } };
+      },
+    },
+    { unhandled: "empty" },
+  );
+  await extractProjectModelVersionsTree(sk, "p1", {
+    versionsLimit: 5,
+    batchVersions: false,
+  });
+  expect(callsFor("GetModelVersions")).toHaveLength(3);
   await sk.dispose();
 });

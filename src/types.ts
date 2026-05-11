@@ -31,6 +31,18 @@ import type {
   TemplateAutomationSchema,
   ProjectTemplateSpecSchema,
   ProjectTemplateResultSchema,
+  WebhookInfoSchema,
+  WebhookEventInfoSchema,
+  IssueInfoSchema,
+  IssueReplyInfoSchema,
+  IssueParticipantInfoSchema,
+  IssueStatusSchema,
+  FileImportJobSchema,
+  UploadUrlSchema,
+  AutomationInfoSchema,
+  AutomateRunInfoSchema,
+  AutomateFunctionRunInfoSchema,
+  AutomateRunStatusSchema,
 } from "@/schemas.js";
 
 export type ProjectInfo = z.infer<typeof ProjectInfoSchema>;
@@ -65,6 +77,121 @@ export type TemplateInsight = z.infer<typeof TemplateInsightSchema>;
 export type TemplateAutomation = z.infer<typeof TemplateAutomationSchema>;
 export type ProjectTemplateSpec = z.infer<typeof ProjectTemplateSpecSchema>;
 export type ProjectTemplateResult = z.infer<typeof ProjectTemplateResultSchema>;
+
+export type WebhookInfo = z.infer<typeof WebhookInfoSchema>;
+export type WebhookEventInfo = z.infer<typeof WebhookEventInfoSchema>;
+
+export interface CreateWebhookInput {
+  url: string;
+  triggers: string[];
+  enabled?: boolean;
+  secret?: string;
+  description?: string;
+}
+
+export interface UpdateWebhookInput {
+  url?: string;
+  triggers?: string[];
+  enabled?: boolean;
+  secret?: string;
+  description?: string;
+}
+
+export type IssueStatus = z.infer<typeof IssueStatusSchema>;
+export type IssueParticipantInfo = z.infer<typeof IssueParticipantInfoSchema>;
+export type IssueInfo = z.infer<typeof IssueInfoSchema>;
+export type IssueReplyInfo = z.infer<typeof IssueReplyInfoSchema>;
+
+export interface IssuesFilter {
+  resourceIdString?: string;
+  search?: string;
+  statuses?: IssueStatus[];
+  loadedVersionsOnly?: boolean;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface CreateIssueInput {
+  title: string;
+  description?: Record<string, unknown>;
+  status?: IssueStatus;
+  priority?: string;
+  resourceIdString?: string;
+  assigneeId?: string;
+}
+
+export interface UpdateIssueInput {
+  title?: string;
+  description?: Record<string, unknown>;
+  status?: IssueStatus;
+  priority?: string;
+  resourceIdString?: string;
+  assigneeId?: string;
+  dueDate?: string;
+}
+
+export interface CreateIssueReplyInput {
+  description: Record<string, unknown>;
+}
+
+export interface PublishVersionInput {
+  objectId: string;
+  message?: string;
+  sourceApplication?: string;
+  parents?: string[];
+  totalChildrenCount?: number;
+}
+
+export interface UpdateVersionPatch {
+  message?: string;
+}
+
+export interface MarkVersionReceivedInput {
+  sourceApplication: string;
+  message?: string;
+  isEmbed?: boolean;
+  withSharedToken?: boolean;
+}
+
+export type FileImportJob = z.infer<typeof FileImportJobSchema>;
+export type UploadUrl = z.infer<typeof UploadUrlSchema>;
+
+export type FileImportConvertedStatus =
+  | "queued" // 0
+  | "processing" // 1
+  | "success" // 2
+  | "error"; // 3
+
+export interface UploadFileInput {
+  fileName: string;
+  data: Blob | ArrayBuffer | Uint8Array;
+}
+
+export type AutomateRunStatus = z.infer<typeof AutomateRunStatusSchema>;
+export type AutomateFunctionRunInfo = z.infer<typeof AutomateFunctionRunInfoSchema>;
+export type AutomateRunInfo = z.infer<typeof AutomateRunInfoSchema>;
+export type AutomationInfo = z.infer<typeof AutomationInfoSchema>;
+
+export interface CreateAutomationInput {
+  name: string;
+  enabled: boolean;
+  isTestAutomation?: boolean;
+}
+
+export interface UpdateAutomationInput {
+  name?: string;
+  enabled?: boolean;
+}
+
+export interface AutomationListOptions {
+  cursor?: string | null;
+  limit?: number;
+}
+
+export interface AutomationRunsOptions {
+  cursor?: string | null;
+  limit?: number;
+}
 
 export interface PageInfo<T> {
   totalCount: number;
