@@ -23,6 +23,11 @@ import {
 import { deleteVersions } from "./Version.js";
 import { listPendingFileImports } from "./FileImport.js";
 import {
+  receiveSpeckleObject,
+  type ReceiveSpeckleObjectOptions,
+  type ReceiveSpeckleObjectResult,
+} from "../objects.js";
+import {
   Automation,
   createAutomation,
   iterateProjectAutomations,
@@ -249,6 +254,11 @@ export interface ListAllProjectModelsTreeOptions {
   filter?: ProjectModelsTreeFilterInput;
 }
 
+export type ProjectObjectLoadOptions = Omit<
+  ReceiveSpeckleObjectOptions,
+  "projectId" | "objectId" | "refId" | "versionId" | "modelId"
+>;
+
 function treeVariables(
   projectId: string,
   opts?: ProjectModelsTreeOptions,
@@ -332,6 +342,28 @@ export class Project extends Node<ProjectInfo> {
 
   model(id: string): Model {
     return new Model(this.speckle, this, id);
+  }
+
+  loadObject(
+    objectId: string,
+    opts?: ProjectObjectLoadOptions,
+  ): Promise<ReceiveSpeckleObjectResult> {
+    return receiveSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.id,
+      objectId,
+    });
+  }
+
+  loadVersionObject(
+    versionId: string,
+    opts?: ProjectObjectLoadOptions,
+  ): Promise<ReceiveSpeckleObjectResult> {
+    return receiveSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.id,
+      versionId,
+    });
   }
 
   insight(id: string): Insight {

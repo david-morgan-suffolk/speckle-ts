@@ -1,0 +1,91 @@
+diff --git a/package.json b/package.json
+index 526a7a82dae5333657b9be835a16f8c0bcff3abc..32196808bca21b094e1d96deb708b11d6fbde5ab 100644
+--- a/package.json
++++ b/package.json
+@@ -61,6 +61,86 @@
+         "types": "./dist/commonjs/index.d.ts",
+         "default": "./dist/commonjs/index.js"
+       }
++    },
++    "./core/objectLoader2": {
++      "import": {
++        "types": "./dist/esm/core/objectLoader2.d.ts",
++        "default": "./dist/esm/core/objectLoader2.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/core/objectLoader2.d.ts",
++        "default": "./dist/commonjs/core/objectLoader2.js"
++      }
++    },
++    "./core/interfaces": {
++      "import": {
++        "types": "./dist/esm/core/interfaces.d.ts",
++        "default": "./dist/esm/core/interfaces.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/core/interfaces.d.ts",
++        "default": "./dist/commonjs/core/interfaces.js"
++      }
++    },
++    "./core/stages/serverDownloader": {
++      "import": {
++        "types": "./dist/esm/core/stages/serverDownloader.d.ts",
++        "default": "./dist/esm/core/stages/serverDownloader.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/core/stages/serverDownloader.d.ts",
++        "default": "./dist/commonjs/core/stages/serverDownloader.js"
++      }
++    },
++    "./core/stages/indexedDatabase": {
++      "import": {
++        "types": "./dist/esm/core/stages/indexedDatabase.d.ts",
++        "default": "./dist/esm/core/stages/indexedDatabase.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/core/stages/indexedDatabase.d.ts",
++        "default": "./dist/commonjs/core/stages/indexedDatabase.js"
++      }
++    },
++    "./core/stages/memory/memoryDatabase": {
++      "import": {
++        "types": "./dist/esm/core/stages/memory/memoryDatabase.d.ts",
++        "default": "./dist/esm/core/stages/memory/memoryDatabase.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/core/stages/memory/memoryDatabase.d.ts",
++        "default": "./dist/commonjs/core/stages/memory/memoryDatabase.js"
++      }
++    },
++    "./deferment/defermentManager": {
++      "import": {
++        "types": "./dist/esm/deferment/defermentManager.d.ts",
++        "default": "./dist/esm/deferment/defermentManager.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/deferment/defermentManager.d.ts",
++        "default": "./dist/commonjs/deferment/defermentManager.js"
++      }
++    },
++    "./types/types": {
++      "import": {
++        "types": "./dist/esm/types/types.d.ts",
++        "default": "./dist/esm/types/types.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/types/types.d.ts",
++        "default": "./dist/commonjs/types/types.js"
++      }
++    },
++    "./types/functions": {
++      "import": {
++        "types": "./dist/esm/types/functions.d.ts",
++        "default": "./dist/esm/types/functions.js"
++      },
++      "require": {
++        "types": "./dist/commonjs/types/functions.d.ts",
++        "default": "./dist/commonjs/types/functions.js"
++      }
+     }
+   },
+   "tshy": {

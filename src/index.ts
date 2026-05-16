@@ -3,8 +3,11 @@ export type { SpeckleOptions, UrlRefs, UrlRefEntry } from "@/client.js";
 
 export { Node } from "@/nodes/Node.js";
 export { Project } from "@/nodes/Project.js";
+export type { ProjectObjectLoadOptions } from "@/nodes/Project.js";
 export { Model } from "@/nodes/Model.js";
+export type { ModelObjectLoadOptions, ModelObjectSendOptions } from "@/nodes/Model.js";
 export { Version } from "@/nodes/Version.js";
+export type { VersionObjectLoadOptions } from "@/nodes/Version.js";
 export { User, ActiveUser } from "@/nodes/User.js";
 export { Account } from "@/nodes/Account.js";
 export { Workspace } from "@/nodes/Workspace.js";
@@ -150,6 +153,33 @@ export {
   type ModelVersionsLoadOptions,
   type ModelVersionsLoaderOptions,
 } from "@/loaders.js";
+
+export {
+  SpeckleObjectLoadError,
+  SpeckleObjectSendError,
+  buildSpeckleObjectLoader,
+  hydrateSpeckleObject,
+  receiveSpeckleObject,
+  sendSpeckleObject,
+  type BuildSpeckleObjectLoaderParams,
+  type ReceiveSpeckleObjectOptions,
+  type ReceiveSpeckleObjectResult,
+  type SendSpeckleObjectOptions,
+  type SendSpeckleObjectResult,
+  type SpeckleBase,
+  type SpeckleObjectCacheConfig,
+  type SpeckleObjectHandle,
+  type SpeckleObjectItem,
+  type SpeckleObjectLoadProgress,
+  type SpeckleObjectLoader,
+  type SpeckleObjectLoaderFactory,
+  type SpeckleObjectLoaderLike,
+  type SpeckleObjectSender,
+  type SpeckleObjectSenderBase,
+  type SpeckleObjectSenderResult,
+  type SpeckleObjectUploadRetryEvent,
+  type SpeckleObjectUploadRetryOptions,
+} from "@/objects.js";
 
 export {
   ProjectInfoSchema,

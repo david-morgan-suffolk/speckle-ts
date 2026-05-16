@@ -9,18 +9,18 @@ Carries forward the lazy-node design from `sasakiassociates/speckle` and updates
 This package is distributed via GitHub, not npm. Install from the repo:
 
 ```bash
-# npm
-npm install graphql github:david-morgan-suffolk/speckle-ts
-
 # bun
 bun add graphql github:david-morgan-suffolk/speckle-ts
 
 # pin a specific commit / tag / branch
-npm install github:david-morgan-suffolk/speckle-ts#v0.1.0
-npm install github:david-morgan-suffolk/speckle-ts#main
+bun add github:david-morgan-suffolk/speckle-ts#v0.1.0
+bun add github:david-morgan-suffolk/speckle-ts#main
 ```
 
-`graphql` is a peer dependency. The package's `prepare` script builds `dist/` from source on install (uses TypeScript from devDeps; no bundler required).
+`graphql` is a peer dependency. Object loading uses Bun `patchedDependencies`
+for `@speckle/objectloader2`, so Bun is the supported install path. npm users
+must apply the equivalent patch or use a prepatched/forked objectloader2 package.
+The package's `prepare` script builds `dist/` from source on install.
 
 ## Use
 
@@ -47,6 +47,42 @@ const unsub = proj.onVersionsUpdate((evt) => console.log("new version", evt));
 
 await sk.dispose();
 ```
+
+### Object Loading
+
+`@suffolk/speckle` can load Speckle object graphs through
+`@speckle/objectloader2` and send loaded graphs through Speckle object upload.
+The returned load handle keeps the underlying loader alive, so call `dispose()`
+when done.
+
+```ts
+const result = await sk.project("PROJECT_ID").model("MODEL_ID").loadLatestObject();
+
+try {
+  const root = await result.handle.getRoot();
+  const child = await result.handle.getObject(result.handle.objectIds[1]!);
+  console.log(root.speckle_type, child.speckle_type);
+
+  const sent = await sk.project("TARGET_PROJECT_ID").model("TARGET_MODEL_ID").sendObject(
+    result.handle,
+    { message: "Sent from @suffolk/speckle" },
+  );
+  console.log(sent.versionId, sent.refId);
+} finally {
+  await result.dispose();
+}
+```
+
+Available entrypoints include `receiveSpeckleObject(sk, ...)`,
+`project.loadObject(objectId)`, `project.loadVersionObject(versionId)`,
+`model.loadLatestObject()`, `model.loadVersionObject(versionId)`,
+`model.loadObject(objectId)`, `model.sendObject(handle)`, and
+`version.loadObject()`.
+
+`model.sendObject(handle)` uploads the object graph, verifies that the root and
+closure objects persisted, then creates a new model version with
+`CreateVersionInput.objectId` set to the sent `refId`. Hash-id loaded handles are
+copied directly; synthetic handles fall back to `@speckle/objectsender`.
 
 ### Transforms
 
@@ -144,12 +180,13 @@ override credentials.
 ## Architecture
 
 ```
-transport (HTTP + WS)  →  generated SDK  →  nodes (lazy refs)  →  transforms (pure)
+transport (HTTP + WS)  →  generated SDK  →  nodes (lazy refs) / object loader  →  transforms (pure)
 ```
 
 - **`src/transport/`** — HTTP via `graphql-request`, subs via `subscriptions-transport-ws` (Speckle's WS server speaks the legacy `graphql-ws` subprotocol; the modern `graphql-ws` lib is incompatible).
 - **`src/generated/`** — codegen output. Do not edit.
 - **`src/nodes/`** — `Speckle → Project → Model → Version` lazy classes; `User`, `Workspace` siblings.
+- **`src/objects.ts`** — object graph loading through patched `@speckle/objectloader2`.
 - **`src/transforms/`** — pure data reshapers; never load.
 
 Rule: **commands either load or transform — never both.**
@@ -159,8 +196,9 @@ Rule: **commands either load or transform — never both.**
 - `bun run codegen` — regenerate SDK + types
 - `bun run typecheck` — `tsc --noEmit`
 - `bun test` — unit tests
-- `npm run build` — emit `dist/` (multi-file ESM + `.d.ts`) via `tsc -p tsconfig.build.json`
-- `npm run prepare` — runs automatically when consumers `npm install` from git
+- `bun run build` — emit `dist/` (multi-file ESM + `.d.ts`) via `tsc -p tsconfig.build.json`
+- `bun run prepare` — runs automatically when consumers install from git
+- `SPECKLE_OBJECT_SEND_LIVE=1 bun test test/objects.live.test.ts -t send` — opt-in live source-to-target object send; writes a target model version
 
 ## Releasing
 

@@ -1,4 +1,9 @@
 import { Node } from "./Node.js";
+import {
+  receiveSpeckleObject,
+  type ReceiveSpeckleObjectOptions,
+  type ReceiveSpeckleObjectResult,
+} from "../objects.js";
 import { parseOrThrow } from "../transport/validate.js";
 import { VersionInfoSchema } from "../schemas.js";
 import type { Model } from "./Model.js";
@@ -61,6 +66,11 @@ const MARK_VERSION_RECEIVED_MUTATION = /* GraphQL */ `
     }
   }
 `;
+
+export type VersionObjectLoadOptions = Omit<
+  ReceiveSpeckleObjectOptions,
+  "projectId" | "modelId" | "versionId" | "objectId" | "refId"
+>;
 
 export async function updateVersion(
   speckle: Speckle,
@@ -141,5 +151,14 @@ export class Version extends Node<VersionInfo> {
 
   markReceived(input: MarkVersionReceivedInput): Promise<boolean> {
     return markVersionReceived(this.speckle, this.model.project.id, this.id, input);
+  }
+
+  loadObject(opts?: VersionObjectLoadOptions): Promise<ReceiveSpeckleObjectResult> {
+    return receiveSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.model.project.id,
+      modelId: this.model.id,
+      versionId: this.id,
+    });
   }
 }

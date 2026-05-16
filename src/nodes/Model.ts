@@ -1,6 +1,15 @@
 import { Node } from "./Node.js";
 import { Version } from "./Version.js";
 import { uploadFileToModel, type UploadFileToModelOptions } from "./FileImport.js";
+import {
+  receiveSpeckleObject,
+  sendSpeckleObject,
+  type ReceiveSpeckleObjectOptions,
+  type ReceiveSpeckleObjectResult,
+  type SendSpeckleObjectOptions,
+  type SendSpeckleObjectResult,
+  type SpeckleObjectHandle,
+} from "../objects.js";
 import { parseOrThrow } from "../transport/validate.js";
 import { ModelInfoSchema, ModelVersionsPageSchema, VersionInfoSchema } from "../schemas.js";
 import type { Project } from "./Project.js";
@@ -74,6 +83,16 @@ export interface ModelVersionsOptions {
 export interface ListAllModelVersionsOptions {
   pageSize?: number;
 }
+
+export type ModelObjectLoadOptions = Omit<
+  ReceiveSpeckleObjectOptions,
+  "projectId" | "modelId" | "versionId" | "objectId" | "refId"
+>;
+
+export type ModelObjectSendOptions = Omit<
+  SendSpeckleObjectOptions,
+  "projectId" | "modelId" | "handle"
+>;
 
 function versionsVariables(
   projectId: string,
@@ -178,6 +197,50 @@ export class Model extends Node<ModelInfo> {
   async publish(input: PublishVersionInput): Promise<Version> {
     const created = await publishVersion(this.speckle, this.project.id, this.id, input);
     return new Version(this.speckle, this, created.id);
+  }
+
+  loadLatestObject(opts?: ModelObjectLoadOptions): Promise<ReceiveSpeckleObjectResult> {
+    return receiveSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.project.id,
+      modelId: this.id,
+    });
+  }
+
+  loadVersionObject(
+    versionId: string,
+    opts?: ModelObjectLoadOptions,
+  ): Promise<ReceiveSpeckleObjectResult> {
+    return receiveSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.project.id,
+      modelId: this.id,
+      versionId,
+    });
+  }
+
+  loadObject(
+    objectId: string,
+    opts?: ModelObjectLoadOptions,
+  ): Promise<ReceiveSpeckleObjectResult> {
+    return receiveSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.project.id,
+      modelId: this.id,
+      objectId,
+    });
+  }
+
+  sendObject(
+    handle: SpeckleObjectHandle,
+    opts?: ModelObjectSendOptions,
+  ): Promise<SendSpeckleObjectResult> {
+    return sendSpeckleObject(this.speckle, {
+      ...opts,
+      projectId: this.project.id,
+      modelId: this.id,
+      handle,
+    });
   }
 
   uploadFile(opts: UploadFileToModelOptions): Promise<FileImportJob> {
