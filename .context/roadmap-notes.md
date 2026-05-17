@@ -41,6 +41,7 @@ Delivered 2026-05-15:
 - Keep GraphQL operation documents as source and generated output as derived.
 - Keep CLI/TUI deps optional for library consumers.
 - Require Bun patching for `@speckle/objectloader2@2.28.0` until upstream exports loader internals or this package switches to a fork.
+- Object loading accepts caller-provided cache databases for SQLite/DuckDB-backed data processing; custom DB disposal remains caller-owned unless explicitly opted in.
 - Do not read, copy, log, or commit Speckle tokens or local auth profile values.
 
 ## Accepted Tech Debt

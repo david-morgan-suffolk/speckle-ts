@@ -168,6 +168,7 @@ export {
   type SendSpeckleObjectResult,
   type SpeckleBase,
   type SpeckleObjectCacheConfig,
+  type SpeckleObjectDatabase,
   type SpeckleObjectHandle,
   type SpeckleObjectItem,
   type SpeckleObjectLoadProgress,

@@ -1,9 +1,11 @@
 import { test, expect } from "bun:test";
 import {
+  buildSpeckleObjectLoader,
   receiveSpeckleObject,
   type BuildSpeckleObjectLoaderParams,
   type SpeckleBase,
   type SpeckleObjectCacheConfig,
+  type SpeckleObjectDatabase,
   type SpeckleObjectItem,
   type SpeckleObjectLoaderFactory,
   type SpeckleObjectLoaderLike,
@@ -207,4 +209,75 @@ test("receiveSpeckleObject disposes loader when root object is missing", async (
   ).rejects.toThrow(/no root object/);
   expect(loader.disposed).toBe(true);
   await sk.dispose();
+});
+
+test("buildSpeckleObjectLoader reads from custom object database", async () => {
+  const root = base("obj_custom");
+  const getAllCalls: string[][] = [];
+  const putAllCalls: SpeckleObjectItem[][] = [];
+  const database: SpeckleObjectDatabase = {
+    getAll: async (ids) => {
+      getAllCalls.push([...ids]);
+      return ids.map((id) => id === root.id ? { baseId: root.id, base: root } : undefined);
+    },
+    putAll: async (batch) => {
+      putAllCalls.push([...batch]);
+    },
+  };
+  const loader = buildSpeckleObjectLoader({
+    serverUrl: "https://example.com",
+    projectId: "p1",
+    objectId: root.id,
+  }, { kind: "custom", database });
+
+  await expect(loader.getRootObject()).resolves.toEqual({ baseId: root.id, base: root });
+  const objects: SpeckleBase[] = [];
+  for await (const object of loader.getObjectIterator()) objects.push(object);
+  expect(objects).toEqual([root]);
+  expect(getAllCalls).toEqual([[root.id]]);
+  expect(putAllCalls).toEqual([]);
+
+  await loader.disposeAsync();
+});
+
+test("custom object database disposal is caller-owned by default", async () => {
+  let disposeCalls = 0;
+  const database: SpeckleObjectDatabase = {
+    getAll: async (ids) => ids.map(() => undefined),
+    putAll: async () => {},
+    dispose: () => {
+      disposeCalls++;
+    },
+  };
+  const loader = buildSpeckleObjectLoader({
+    serverUrl: "https://example.com",
+    projectId: "p1",
+    objectId: "missing",
+  }, { kind: "custom", database });
+
+  await loader.disposeAsync();
+  await loader.disposeAsync();
+
+  expect(disposeCalls).toBe(0);
+});
+
+test("custom object database can be disposed by loader", async () => {
+  let disposeCalls = 0;
+  const database: SpeckleObjectDatabase = {
+    getAll: async (ids) => ids.map(() => undefined),
+    putAll: async () => {},
+    dispose: async () => {
+      disposeCalls++;
+    },
+  };
+  const loader = buildSpeckleObjectLoader({
+    serverUrl: "https://example.com",
+    projectId: "p1",
+    objectId: "missing",
+  }, { kind: "custom", database, dispose: true });
+
+  await loader.disposeAsync();
+  await loader.disposeAsync();
+
+  expect(disposeCalls).toBe(1);
 });

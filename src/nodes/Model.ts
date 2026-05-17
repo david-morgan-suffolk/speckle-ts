@@ -44,6 +44,7 @@ const CREATE_VERSION_MUTATION = /* GraphQL */ `
         message
         sourceApplication
         referencedObject
+        previewUrl
         createdAt
         authorUser { id name }
       }

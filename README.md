@@ -84,6 +84,29 @@ closure objects persisted, then creates a new model version with
 `CreateVersionInput.objectId` set to the sent `refId`. Hash-id loaded handles are
 copied directly; synthetic handles fall back to `@speckle/objectsender`.
 
+Load cache defaults to in-memory. Use `cache: { kind: "custom", database }` to
+back the loader with SQLite, DuckDB, or another data-processing store. The
+custom database must preserve `getAll(ids)` order and upsert `putAll(batch)` by
+`baseId`. Custom database disposal is caller-owned by default; pass
+`dispose: true` only when the loader should close it.
+
+```ts
+import type { SpeckleObjectDatabase } from "@suffolk/speckle";
+
+const database: SpeckleObjectDatabase = {
+  async getAll(ids) {
+    return ids.map((id) => loadSpeckleItemFromSqlite(id));
+  },
+  async putAll(batch) {
+    await upsertSpeckleItemsIntoSqlite(batch);
+  },
+};
+
+const result = await sk.project("PROJECT_ID").model("MODEL_ID").loadLatestObject({
+  cache: { kind: "custom", database },
+});
+```
+
 ### Transforms
 
 Pure data reshapers — zero I/O. Imported separately from loaders.

@@ -1,4 +1,5 @@
 import { test, expect } from "bun:test";
+import pkg from "../package.json";
 import {
   hydrateSpeckleObject,
   receiveSpeckleObject,
@@ -297,6 +298,73 @@ test("Model.sendObject copies hash-id loaded objects without reserializing", asy
   await sk.dispose();
 });
 
+test("concurrent direct object sends do not replace global fetch", async () => {
+  const firstRoot = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const firstChild = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const secondRoot = "cccccccccccccccccccccccccccccccc";
+  const secondChild = "dddddddddddddddddddddddddddddddd";
+  const firstHandle = handleFrom({
+    [firstRoot]: base(firstRoot, { __closure: { [firstChild]: 1 } }),
+    [firstChild]: base(firstChild),
+  }, firstRoot);
+  const secondHandle = handleFrom({
+    [secondRoot]: base(secondRoot, { __closure: { [secondChild]: 1 } }),
+    [secondChild]: base(secondChild),
+  }, secondRoot);
+  const uploadedIds = new Set<string>();
+  const objectFetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    expect(globalThis.fetch).toBe(objectFetch);
+    const url = urlFromFetchInput(input);
+    if (url.pathname === "/api/diff/target_project") {
+      const ids = diffIds(init);
+      return jsonResponse(Object.fromEntries(ids.map((id) => [id, uploadedIds.has(id)])));
+    }
+    if (url.pathname === "/objects/target_project") {
+      const batch = await readObjectBatch(init);
+      for (const object of batch.objects) {
+        if (typeof object.id === "string") uploadedIds.add(object.id);
+      }
+      return new Response(null, { status: 201 });
+    }
+    throw new Error(`unexpected object fetch ${url.pathname}`);
+  }) as typeof fetch;
+  const { sk } = mockSpeckle({
+    CreateSentObjectVersion: (req) => {
+      const input = req.variables["input"] as { objectId: string };
+      return {
+        versionMutations: {
+          create: versionFixture(`v_${input.objectId.slice(0, 4)}`, {
+            referencedObject: input.objectId,
+          }),
+        },
+      };
+    },
+  });
+
+  await withGlobalFetch(objectFetch, async () => {
+    const [first, second] = await Promise.all([
+      sk.project("target_project").model("target_model").sendObject(firstHandle, {
+        retry: false,
+      }),
+      sk.project("target_project").model("target_model").sendObject(secondHandle, {
+        retry: false,
+      }),
+    ]);
+    expect(first.refId).toBe(firstRoot);
+    expect(second.refId).toBe(secondRoot);
+    expect(uploadedIds).toEqual(new Set([firstRoot, firstChild, secondRoot, secondChild]));
+  });
+
+  await sk.dispose();
+});
+
+test("package includes patches needed by patchedDependencies", () => {
+  expect(pkg.files).toContain("patches");
+  expect(pkg.patchedDependencies["@speckle/objectloader2@2.28.0"]).toBe(
+    "patches/@speckle%2Fobjectloader2@2.28.0.patch",
+  );
+});
+
 test("Model.sendObject creates a version from the sender hash", async () => {
   const handle = handleFrom({
     root: base("root", {
@@ -312,7 +380,9 @@ test("Model.sendObject creates a version from the sender hash", async () => {
     token: string;
     serverUrl: string | undefined;
   }> = [];
+  const originalFetch = globalThis.fetch;
   const sender: SpeckleObjectSender = async (object, params) => {
+    expect(globalThis.fetch).toBe(originalFetch);
     senderCalls.push({
       objectId: object.id,
       projectId: params.projectId,
@@ -345,6 +415,7 @@ test("Model.sendObject creates a version from the sender hash", async () => {
   expect(result.refId).toBe("sent_hash");
   expect(result.versionId).toBe("v_sent");
   expect(result.version.referencedObject).toBe("sent_hash");
+  expect(globalThis.fetch).toBe(originalFetch);
   expect(senderCalls).toEqual([
     {
       objectId: "root",

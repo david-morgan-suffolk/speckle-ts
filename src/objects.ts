@@ -36,6 +36,7 @@ const VERIFY_OBJECT_DELAY_MS = 5_000;
 const DIRECT_UPLOAD_DIFF_BATCH_SIZE = 10_000;
 const DIRECT_UPLOAD_MAX_BATCH_BYTES = 200_000;
 const OBJECT_UPLOAD_SUCCESS_STATUSES = new Set([200, 201]);
+let objectSenderFetchPatchLock: Promise<void> = Promise.resolve();
 const noopSendLogger: NonNullable<SendParams["logger"]> = {
   log: () => {},
   error: () => {},
@@ -77,6 +78,7 @@ const CREATE_SENT_VERSION_MUTATION = /* GraphQL */ `
         message
         sourceApplication
         referencedObject
+        previewUrl
         createdAt
         authorUser { id name }
       }
@@ -94,10 +96,27 @@ export type SpeckleObjectSender = (
   params: SendParams,
 ) => Promise<SendResult>;
 
+export interface SpeckleObjectDatabase {
+  getAll(ids: readonly string[]): Promise<Array<SpeckleObjectItem | undefined>>;
+  putAll(batch: readonly SpeckleObjectItem[]): Promise<void>;
+  dispose?(): void | Promise<void>;
+}
+
 export type SpeckleObjectCacheConfig =
   | { kind: "memory" }
   | { kind: "none" }
-  | ({ kind: "indexeddb" } & IndexedDatabaseOptions);
+  | ({ kind: "indexeddb" } & IndexedDatabaseOptions)
+  | {
+    kind: "custom";
+    database: SpeckleObjectDatabase;
+    /** Defaults to false because external SQLite/DuckDB connections are usually shared. */
+    dispose?: boolean;
+  };
+
+interface ManagedSpeckleObjectDatabase {
+  database: Database;
+  dispose(): Promise<void>;
+}
 
 export interface BuildSpeckleObjectLoaderParams {
   serverUrl: string;
@@ -191,6 +210,12 @@ export interface SendSpeckleObjectOptions {
   token?: string;
   logger?: SendParams["logger"];
   sender?: SpeckleObjectSender;
+  /**
+   * `auto` copies existing hash-addressed object graphs directly when possible;
+   * `rehash` always hydrates through ObjectSender; `direct` requires every
+   * handle id to already be a Speckle object hash.
+   */
+  uploadMode?: "auto" | "rehash" | "direct";
   retry?: false | SpeckleObjectUploadRetryOptions;
   onUploadRetry?: (event: SpeckleObjectUploadRetryEvent) => void;
 }
@@ -249,13 +274,16 @@ export function buildSpeckleObjectLoader(
   if (params.headers !== undefined) downloaderOptions.headers = params.headers;
   if (params.fetch !== undefined) downloaderOptions.fetch = params.fetch;
 
-  return new ObjectLoader2({
+  const managedDatabase = createDatabase(cache);
+
+  const loader = new ObjectLoader2({
     rootId: params.objectId,
     deferments: new DefermentManager(logger),
     downloader: new ServerDownloader(downloaderOptions),
-    database: createDatabase(cache),
+    database: managedDatabase.database,
     logger,
   });
+  return withManagedDatabaseDisposal(loader, managedDatabase.dispose);
 }
 
 export async function receiveSpeckleObject(
@@ -334,7 +362,7 @@ export async function sendSpeckleObject(
   }
 
   const serverUrl = normalizeServerUrl(speckle.server);
-  const send = opts.sender === undefined && canUploadHandleObjectsDirectly(opts.handle)
+  const send = shouldUploadHandleObjectsDirectly(opts)
     ? await sendLoadedObjectGraphDirectly(serverUrl, opts, token)
     : await sendWithObjectSender(serverUrl, opts, token);
   if (!send.hash) {
@@ -347,6 +375,7 @@ export async function sendSpeckleObject(
       sentObjectIds(send),
       token,
       opts.retry,
+      opts.onUploadRetry,
     );
   }
 
@@ -374,6 +403,19 @@ export async function sendSpeckleObject(
   };
 }
 
+function shouldUploadHandleObjectsDirectly(opts: SendSpeckleObjectOptions): boolean {
+  if (opts.sender !== undefined) return false;
+  const mode = opts.uploadMode ?? "auto";
+  if (mode === "rehash") return false;
+  const canDirect = canUploadHandleObjectsDirectly(opts.handle);
+  if (mode === "direct" && !canDirect) {
+    throw new SpeckleObjectSendError(
+      "sendSpeckleObject uploadMode=direct requires hash-addressed handle objects",
+    );
+  }
+  return canDirect;
+}
+
 export async function hydrateSpeckleObject(
   handle: SpeckleObjectHandle,
 ): Promise<SenderBase> {
@@ -396,8 +438,15 @@ async function sendWithObjectSender(
     token,
     logger: opts.logger ?? noopSendLogger,
   };
-  return withSpeckleObjectUploadRetry(
-    () => sender(root, sendParams),
+  if (opts.sender !== undefined) {
+    return runWithUploadRetry(
+      () => sender(root, sendParams),
+      opts.retry,
+      opts.onUploadRetry,
+    );
+  }
+  return withObjectSenderFetchPatch(
+    () => objectsenderSend(root, sendParams),
     opts.retry,
     opts.onUploadRetry,
   );
@@ -409,8 +458,11 @@ async function sendLoadedObjectGraphDirectly(
   token: string,
 ): Promise<SendResult> {
   const objects = await loadHandleObjects(opts.handle);
-  await withSpeckleObjectUploadRetry(
-    () => uploadLoadedObjects(serverUrl, opts.projectId, objects, token),
+  await uploadLoadedObjects(
+    serverUrl,
+    opts.projectId,
+    objects,
+    token,
     opts.retry,
     opts.onUploadRetry,
   );
@@ -449,13 +501,15 @@ async function uploadLoadedObjects(
   projectId: string,
   objects: ReadonlyMap<string, LoaderBase>,
   token: string,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<void> {
   const ids = [...objects.keys()];
   for (let i = 0; i < ids.length; i += DIRECT_UPLOAD_DIFF_BATCH_SIZE) {
     const diffIds = ids.slice(i, i + DIRECT_UPLOAD_DIFF_BATCH_SIZE);
-    const exists = await diffObjectsExist(serverUrl, projectId, diffIds, token);
+    const exists = await diffObjectsExist(serverUrl, projectId, diffIds, token, retry, onRetry);
     const missing = diffIds.filter((id) => exists[id] !== true);
-    await uploadSerializedObjects(serverUrl, projectId, missing, objects, token);
+    await uploadSerializedObjects(serverUrl, projectId, missing, objects, token, retry, onRetry);
   }
 }
 
@@ -465,6 +519,8 @@ async function uploadSerializedObjects(
   ids: readonly string[],
   objects: ReadonlyMap<string, LoaderBase>,
   token: string,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<void> {
   let batch: string[] = [];
   let size = 2;
@@ -474,14 +530,16 @@ async function uploadSerializedObjects(
     const serialized = JSON.stringify(object);
     const nextSize = size + serialized.length + (batch.length === 0 ? 0 : 1);
     if (batch.length > 0 && nextSize > DIRECT_UPLOAD_MAX_BATCH_BYTES) {
-      await uploadObjectJsonBatch(serverUrl, projectId, batch, token);
+      await uploadObjectJsonBatch(serverUrl, projectId, batch, token, retry, onRetry);
       batch = [];
       size = 2;
     }
     batch.push(serialized);
     size += serialized.length + (batch.length === 1 ? 0 : 1);
   }
-  if (batch.length > 0) await uploadObjectJsonBatch(serverUrl, projectId, batch, token);
+  if (batch.length > 0) {
+    await uploadObjectJsonBatch(serverUrl, projectId, batch, token, retry, onRetry);
+  }
 }
 
 async function uploadObjectJsonBatch(
@@ -489,6 +547,8 @@ async function uploadObjectJsonBatch(
   projectId: string,
   serializedObjects: readonly string[],
   token: string,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<void> {
   const form = new FormData();
   form.append(
@@ -496,11 +556,11 @@ async function uploadObjectJsonBatch(
     new Blob([`[${serializedObjects.join(",")}]`], { type: "application/json" }),
     "batch-0",
   );
-  const response = await fetch(new URL(`/objects/${projectId}`, serverUrl), {
+  const response = await fetchWithUploadRetry(new URL(`/objects/${projectId}`, serverUrl), {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: form,
-  });
+  }, retry, onRetry);
   if (!OBJECT_UPLOAD_SUCCESS_STATUSES.has(response.status)) {
     const body = await response.text();
     throw new SpeckleObjectSendError(
@@ -630,14 +690,51 @@ function isReference(value: unknown): boolean {
   return typeof speckleType === "string" && speckleType.toLowerCase() === "reference";
 }
 
-function createDatabase(cache: SpeckleObjectCacheConfig): Database {
+function createDatabase(cache: SpeckleObjectCacheConfig): ManagedSpeckleObjectDatabase {
   switch (cache.kind) {
-    case "indexeddb":
-      return new IndexedDatabase(cache);
+    case "indexeddb": {
+      const database = new IndexedDatabase(cache);
+      return { database, dispose: () => Promise.resolve(database.dispose()) };
+    }
     case "memory":
-    case "none":
-      return new MemoryDatabase({ items: new Map<string, LoaderBase>() });
+    case "none": {
+      const database = new MemoryDatabase({ items: new Map<string, LoaderBase>() });
+      return { database, dispose: () => Promise.resolve(database.dispose()) };
+    }
+    case "custom":
+      return {
+        database: adaptObjectDatabase(cache.database),
+        dispose: async () => {
+          if (cache.dispose === true) await cache.database.dispose?.();
+        },
+      };
   }
+}
+
+function adaptObjectDatabase(database: SpeckleObjectDatabase): Database {
+  return {
+    getAll: (ids) => database.getAll(ids),
+    putAll: (batch) => database.putAll(batch),
+    dispose: () => {},
+  };
+}
+
+function withManagedDatabaseDisposal(
+  loader: ObjectLoader2,
+  disposeDatabase: () => Promise<void>,
+): ObjectLoader2 {
+  const disposeLoader = loader.disposeAsync.bind(loader);
+  let disposed = false;
+  loader.disposeAsync = async (): Promise<void> => {
+    if (disposed) return;
+    disposed = true;
+    try {
+      await disposeLoader();
+    } finally {
+      await disposeDatabase();
+    }
+  };
+  return loader;
 }
 
 async function resolveObjectReference(
@@ -745,68 +842,94 @@ async function createSentModelVersion(
   );
 }
 
-async function withSpeckleObjectUploadRetry<T>(
+async function runWithUploadRetry<T>(
+  body: (signal: AbortSignal) => Promise<T>,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
+): Promise<T> {
+  const { attempts, baseDelayMs, attemptTimeoutMs } = uploadRetryConfig(retry);
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new Error("Speckle object upload timed out")),
+      attemptTimeoutMs,
+    );
+    try {
+      return await body(controller.signal);
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientFetchError(err) || attempt === attempts) throw err;
+      const delayMs = baseDelayMs * 2 ** (attempt - 1);
+      onRetry?.({ attempt, attempts, delayMs, error: err });
+      await delay(delayMs);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw lastErr;
+}
+
+async function fetchWithUploadRetry(
+  input: Parameters<typeof fetch>[0],
+  init: RequestInit,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
+  baseFetch: typeof fetch = fetch,
+  normalizeObjectUpload = false,
+): Promise<Response> {
+  return runWithUploadRetry(async (signal) => {
+    const requestInit = withMergedSignal(init, signal);
+    const uploadRequest = normalizeObjectUpload && isObjectBatchUpload(input, requestInit);
+    const response = await baseFetch(
+      input,
+      normalizeObjectUpload ? normalizeObjectUploadRequest(input, requestInit) : requestInit,
+    );
+    if (uploadRequest && !OBJECT_UPLOAD_SUCCESS_STATUSES.has(response.status)) {
+      const body = await response.clone().text();
+      throw new SpeckleObjectSendError(
+        `Object upload failed: ${response.status} ${response.statusText}: ${body}`,
+      );
+    }
+    if (uploadRequest && response.status === 200) {
+      return new Response(response.body, {
+        status: 201,
+        statusText: "Created",
+        headers: response.headers,
+      });
+    }
+    return response;
+  }, retry, onRetry);
+}
+
+async function withObjectSenderFetchPatch<T>(
   body: () => Promise<T>,
   retry: false | SpeckleObjectUploadRetryOptions | undefined,
   onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<T> {
-  const attempts = retry === false
-    ? 1
-    : Math.max(1, retry?.attempts ?? DEFAULT_UPLOAD_RETRY_ATTEMPTS);
-  const baseDelayMs = retry === false
-    ? 0
-    : retry?.baseDelayMs ?? DEFAULT_UPLOAD_RETRY_BASE_DELAY_MS;
-  const attemptTimeoutMs = retry === false
-    ? DEFAULT_UPLOAD_ATTEMPT_TIMEOUT_MS
-    : retry?.attemptTimeoutMs ?? DEFAULT_UPLOAD_ATTEMPT_TIMEOUT_MS;
+  const previousLock = objectSenderFetchPatchLock;
+  let releaseLock: () => void = () => {};
+  objectSenderFetchPatchLock = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+  await previousLock.catch(() => undefined);
+
   const original = globalThis.fetch;
   let chain: Promise<unknown> = Promise.resolve();
-
   const wrapped = ((
     input: Parameters<typeof fetch>[0],
     init?: Parameters<typeof fetch>[1],
   ) => {
-    const next = chain.then(async () => {
-      let lastErr: unknown;
-      for (let attempt = 1; attempt <= attempts; attempt++) {
-        const controller = new AbortController();
-        const timeout = setTimeout(
-          () => controller.abort(new Error("Speckle object upload timed out")),
-          attemptTimeoutMs,
-        );
-        try {
-          const requestInit = withMergedSignal(init, controller.signal);
-          const uploadRequest = isObjectBatchUpload(input, requestInit);
-          const response = await original(
-            input,
-            normalizeObjectUploadRequest(input, requestInit),
-          );
-          clearTimeout(timeout);
-          if (uploadRequest && !OBJECT_UPLOAD_SUCCESS_STATUSES.has(response.status)) {
-            const body = await response.clone().text();
-            throw new SpeckleObjectSendError(
-              `Object upload failed: ${response.status} ${response.statusText}: ${body}`,
-            );
-          }
-          if (uploadRequest && response.status === 200) {
-            return new Response(response.body, {
-              status: 201,
-              statusText: "Created",
-              headers: response.headers,
-            });
-          }
-          return response;
-        } catch (err) {
-          clearTimeout(timeout);
-          lastErr = err;
-          if (!isTransientFetchError(err) || attempt === attempts) throw err;
-          const delayMs = baseDelayMs * 2 ** (attempt - 1);
-          onRetry?.({ attempt, attempts, delayMs, error: err });
-          await delay(delayMs);
-        }
-      }
-      throw lastErr;
-    });
+    const next = chain.then(() =>
+      fetchWithUploadRetry(
+        input,
+        init ?? {},
+        retry,
+        onRetry,
+        original,
+        true,
+      )
+    );
     chain = next.catch(() => undefined);
     return next as Promise<Response>;
   }) as typeof fetch;
@@ -816,7 +939,23 @@ async function withSpeckleObjectUploadRetry<T>(
     return await body();
   } finally {
     globalThis.fetch = original;
+    releaseLock();
   }
+}
+
+function uploadRetryConfig(
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+): { attempts: number; baseDelayMs: number; attemptTimeoutMs: number } {
+  const attempts = retry === false
+    ? 1
+    : Math.max(1, retry?.attempts ?? DEFAULT_UPLOAD_RETRY_ATTEMPTS);
+  const baseDelayMs = retry === false
+    ? 0
+    : retry?.baseDelayMs ?? DEFAULT_UPLOAD_RETRY_BASE_DELAY_MS;
+  const attemptTimeoutMs = retry === false
+    ? DEFAULT_UPLOAD_ATTEMPT_TIMEOUT_MS
+    : retry?.attemptTimeoutMs ?? DEFAULT_UPLOAD_ATTEMPT_TIMEOUT_MS;
+  return { attempts, baseDelayMs, attemptTimeoutMs };
 }
 
 function withMergedSignal(
@@ -901,6 +1040,7 @@ function anyAbortSignal(signals: AbortSignal[]): AbortSignal {
 
 function isTransientFetchError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
+  if (err.name === "AbortError") return true;
   const code = (err as { code?: unknown }).code;
   if (
     code === "ECONNRESET" ||
@@ -911,7 +1051,7 @@ function isTransientFetchError(err: unknown): boolean {
     return true;
   }
   const message = `${err.message} ${err.cause instanceof Error ? err.cause.message : ""}`;
-  if (/fetch failed|socket.*closed|other side closed|econnreset|epipe|terminated/i.test(message)) {
+  if (/fetch failed|socket.*closed|other side closed|econnreset|epipe|terminated|timed out|aborted/i.test(message)) {
     return true;
   }
   return err.cause instanceof Error && isTransientFetchError(err.cause);
@@ -923,11 +1063,19 @@ async function verifyUploadedObjects(
   objectIds: readonly string[],
   token: string,
   retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<void> {
   const attempts = retry === false ? 1 : VERIFY_OBJECT_ATTEMPTS;
   let missing: string[] = [];
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    missing = await missingUploadedObjects(serverUrl, projectId, objectIds, token);
+    missing = await missingUploadedObjects(
+      serverUrl,
+      projectId,
+      objectIds,
+      token,
+      retry,
+      onRetry,
+    );
     if (missing.length === 0) return;
     if (attempt < attempts) await delay(VERIFY_OBJECT_DELAY_MS);
   }
@@ -941,11 +1089,13 @@ async function missingUploadedObjects(
   projectId: string,
   objectIds: readonly string[],
   token: string,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<string[]> {
   const missing: string[] = [];
   for (let i = 0; i < objectIds.length; i += VERIFY_OBJECT_BATCH_SIZE) {
     const batch = objectIds.slice(i, i + VERIFY_OBJECT_BATCH_SIZE);
-    const exists = await diffObjectsExist(serverUrl, projectId, batch, token);
+    const exists = await diffObjectsExist(serverUrl, projectId, batch, token, retry, onRetry);
     for (const objectId of batch) {
       if (exists[objectId] !== true) missing.push(objectId);
     }
@@ -958,16 +1108,18 @@ async function diffObjectsExist(
   projectId: string,
   objectIds: readonly string[],
   token: string,
+  retry: false | SpeckleObjectUploadRetryOptions | undefined,
+  onRetry: ((event: SpeckleObjectUploadRetryEvent) => void) | undefined,
 ): Promise<Record<string, boolean>> {
   const url = new URL(`/api/diff/${projectId}`, serverUrl);
-  const response = await fetch(url, {
+  const response = await fetchWithUploadRetry(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ objects: JSON.stringify(objectIds) }),
-  });
+  }, retry, onRetry);
   const body = await response.text();
   if (!response.ok) {
     throw new SpeckleObjectSendError(

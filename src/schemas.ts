@@ -25,6 +25,7 @@ export const VersionInfoSchema = z.object({
   message: z.string().nullable(),
   sourceApplication: z.string().nullable(),
   referencedObject: z.string(),
+  previewUrl: z.string().nullable().optional(),
   createdAt: z.string(),
   authorUser: z
     .object({

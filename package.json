@@ -27,6 +27,7 @@
   "sideEffects": false,
   "files": [
     "dist",
+    "patches",
     "README.md",
     "LICENSE"
   ],
