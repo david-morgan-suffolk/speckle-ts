@@ -1,0 +1,180 @@
+name: Release
+
+on:
+  push:
+    branches: [main, stage]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver bump to release from the selected branch
+        type: choice
+        required: true
+        default: major
+        options:
+          - major
+          - minor
+          - patch
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version, tag, and release
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      - name: Compute version
+        id: version
+        shell: bash
+        env:
+          INPUT_BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+
+          current_version="$(bun -e 'const pkg = await Bun.file("package.json").json(); console.log(pkg.version);')"
+          if [[ ! "${current_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::package.json version must be stable semver, got ${current_version}"
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" != "main" && "${GITHUB_REF_NAME}" != "stage" ]]; then
+            echo "::error::Unsupported release branch ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          latest_tag="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | awk 'NR == 1 { print; exit }')"
+          version_changed="true"
+          if [[ -n "${latest_tag}" ]]; then
+            if ! git merge-base --is-ancestor "${latest_tag}" HEAD; then
+              echo "::error::Latest release tag ${latest_tag} is not reachable from ${GITHUB_REF_NAME}. Sync this branch from the release branch before releasing."
+              exit 1
+            fi
+
+            latest_version="${latest_tag#v}"
+            if [[ "${current_version}" != "${latest_version}" ]]; then
+              echo "::error::package.json version ${current_version} does not match latest reachable tag ${latest_tag}."
+              exit 1
+            fi
+
+            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+              bump="${INPUT_BUMP}"
+            elif [[ "${GITHUB_REF_NAME}" == "stage" ]]; then
+              bump="patch"
+            elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              bump="minor"
+            else
+              echo "::error::Unsupported release branch ${GITHUB_REF_NAME}"
+              exit 1
+            fi
+
+            IFS=. read -r major minor patch <<< "${current_version}"
+            case "${bump}" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+              *)
+                echo "::error::Unsupported semver bump ${bump}"
+                exit 1
+                ;;
+            esac
+
+            next_version="${major}.${minor}.${patch}"
+          else
+            bump="initial"
+            next_version="${current_version}"
+            version_changed="false"
+          fi
+
+          tag="v${next_version}"
+          if git rev-parse "${tag}" >/dev/null 2>&1; then
+            echo "::error::Tag ${tag} already exists"
+            exit 1
+          fi
+
+          echo "bump=${bump}" >> "${GITHUB_OUTPUT}"
+          echo "version=${next_version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "version_changed=${version_changed}" >> "${GITHUB_OUTPUT}"
+
+      - name: Bump package version
+        if: steps.version.outputs.version_changed == 'true'
+        env:
+          NEXT_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bun -e 'const version = process.env.NEXT_VERSION; const pkg = await Bun.file("package.json").json(); pkg.version = version; await Bun.write("package.json", `${JSON.stringify(pkg, null, 2)}\n`);'
+          bun install
+
+      - name: Commit release version
+        if: steps.version.outputs.version_changed == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git add package.json bun.lock
+          if git diff --cached --quiet; then
+            echo "::error::No version changes staged for ${RELEASE_TAG}"
+            exit 1
+          fi
+          git commit -m "chore(release): ${RELEASE_TAG}"
+
+      - name: Tag and push release
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "${RELEASE_TAG}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BUMP: ${{ steps.version.outputs.bump }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "${RELEASE_TAG}" \
+            --title "${RELEASE_TAG}" \
+            --notes "Automated ${RELEASE_BUMP} release from ${GITHUB_REF_NAME}."
