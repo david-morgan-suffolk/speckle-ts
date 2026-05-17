@@ -217,6 +217,7 @@ Rule: **commands either load or transform — never both.**
 ## Scripts
 
 - `bun run codegen` — regenerate SDK + types
+- `bun run lint` — run Biome checks over source, tests, scripts, and codegen config
 - `bun run typecheck` — `tsc --noEmit`
 - `bun test` — unit tests
 - `bun run build` — emit `dist/` (multi-file ESM + `.d.ts`) via `tsc -p tsconfig.build.json`
@@ -225,14 +226,23 @@ Rule: **commands either load or transform — never both.**
 
 ## Releasing
 
-Tag a release on GitHub for stable installs:
+Releases are branch-driven stable semver tags:
+
+- First release tags current `package.json` version, such as `v0.2.0`.
+- Push to `stage` creates a patch release, such as `v0.2.1`.
+- Push to `main` creates a minor release, such as `v0.3.0`.
+- Manual workflow dispatch can choose `major`, `minor`, or `patch`.
+
+The release workflow runs lint, typecheck, tests, and build; updates
+`package.json` and `bun.lock` for bumped releases; commits
+`chore(release): vX.Y.Z`; creates the tag; and creates a GitHub Release.
+`CHANGELOG.md` is not generated; GitHub Releases are the release log.
+
+Consumers pin via release tags:
 
 ```bash
-git tag v0.1.0
-git push --tags
+bun add github:david-morgan-suffolk/speckle-ts#v0.2.0
 ```
-
-Consumers then pin via `github:david-morgan-suffolk/speckle-ts#v0.1.0`.
 
 ## License
 

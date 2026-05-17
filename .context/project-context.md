@@ -45,12 +45,14 @@ Core rules:
 ## Current Product State
 
 - Public package name is `@suffolk/speckle`.
+- Package is private to npm and released through GitHub tags/releases.
 - Package is ESM and exposes root library API plus `@suffolk/speckle/cli`.
 - `graphql` is a peer dependency.
 - `@speckle/objectloader2` is a runtime dependency and is patched via Bun `patchedDependencies` to expose loader internals.
 - `@speckle/objectsender` is a runtime dependency for sending hydrated object graphs before creating model versions.
 - Optional CLI/TUI peers include `citty`, `yaml`, `fuse.js`, `picocolors`, `react`, `@opentui/core`, and `@opentui/react`.
 - `prepare` runs `bun run clean && bun run build` for git installs.
+- CI/release workflows run Biome lint, TypeScript typecheck, Bun tests, and build.
 - Default server is `https://app.speckle.systems`.
 - `SPECKLE_TOKEN` and `SPECKLE_SERVER` env vars are the library/CLI auth baseline.
 - CLI auth can read/write `~/.speckle/config.json`; treat it as secret-bearing.

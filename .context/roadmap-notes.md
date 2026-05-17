@@ -31,11 +31,21 @@ Delivered 2026-05-15:
 - Singular `AGENT.md` compatibility shim.
 - `.context/project-context.md`, `.context/engineering-guide.md`, and `.context/roadmap-notes.md`.
 
+### GitHub Release Automation
+
+Delivered 2026-05-17:
+
+- GitHub CI workflow for lint, typecheck, tests, and build.
+- Branch-driven release workflow for stable semver tags and GitHub Releases.
+- Biome lint/format config and scripts.
+
 ## Durable Decisions
 
 - Use `AGENTS.md` as the canonical agent entrypoint.
 - Keep `.context/` for larger durable context split by purpose.
 - Use Bun for local install, tests, scripts, and build commands.
+- Use Biome for lint/format checks over source, tests, scripts, and codegen config.
+- Release from GitHub branches: `stage` creates patch tags, `main` creates minor tags, and manual dispatch chooses a semver bump.
 - Keep node refs lazy; no network during resource chaining.
 - Keep transforms pure and zero I/O.
 - Keep GraphQL operation documents as source and generated output as derived.
@@ -64,6 +74,7 @@ Delivered 2026-05-15:
 ## Refresh Checklist
 
 - Commands still match `package.json`.
+- GitHub workflow checks still match package scripts.
 - Public exports still match README examples and generated declarations.
 - Generated output still matches `src/operations/**/*.graphql` and `codegen.ts`.
 - Safety rules still cover Speckle token, bearer header, and CLI profile handling.

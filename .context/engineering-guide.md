@@ -6,6 +6,9 @@ Use Bun for local development.
 
 - `bun install` - install dependencies from `bun.lock`.
 - `bun run typecheck` - run `tsc --noEmit` against `src/**/*`, `test/**/*`, and `codegen.ts`.
+- `bun run lint` - run `biome lint src test scripts codegen.ts`.
+- `bun run lint:fix` - run `biome lint --write src test scripts codegen.ts`.
+- `bun run format` - run `biome format --write src test scripts codegen.ts`.
 - `bun test` - run Bun tests under `test/`; live tests skip unless `SPECKLE_TOKEN` is present.
 - `bun run build` - build `dist/` with `tsconfig.build.json` and `tsc-alias`.
 - `SPECKLE_SERVER=https://app.speckle.systems bun run codegen` - regenerate schema, introspection, and SDK from GraphQL documents.
@@ -16,6 +19,19 @@ Use Bun for local development.
 - `bun run template:new` - run the template creation helper.
 
 Do not overstate command scope. `bun test` is not proof that codegen, build output, or package install from GitHub works unless those were run separately. If `SPECKLE_TOKEN` was absent, it is not proof that live tests passed.
+
+## Releases
+
+- Package name is `@suffolk/speckle`.
+- `package.json` is private; releases are GitHub tags/releases, not npm publications.
+- Releases are branch-driven stable semver tags.
+- The first release tags the current `package.json` version.
+- Pushes to `stage` create patch releases.
+- Pushes to `main` create minor releases.
+- Manual workflow dispatch can choose `major`, `minor`, or `patch`.
+- The release workflow runs lint, typecheck, tests, and build before versioning.
+- The release workflow updates `package.json`, refreshes `bun.lock`, commits `chore(release): vX.Y.Z` for bumped releases, tags the release commit, and creates a GitHub release.
+- Do not add `CHANGELOG.md` automation unless explicitly requested; GitHub Releases are the release log.
 
 ## TypeScript
 
@@ -73,6 +89,7 @@ Style rules:
 - Runtime/package type: ESM via `"type": "module"`.
 - TypeScript configs: `tsconfig.json`, `tsconfig.build.json`.
 - Codegen config: `codegen.ts`.
+- Formatter/linter config: `biome.json`.
 - Env names: `.env.example`; do not read `.env`.
 
 ## Context Maintenance

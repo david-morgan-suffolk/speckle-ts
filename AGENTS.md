@@ -30,6 +30,8 @@ Additional durable context lives in `.context/`:
 Use Bun for local development.
 
 - `bun install` - install deps from `bun.lock`.
+- `bun run lint` - run Biome checks over source, tests, scripts, and codegen config.
+- `bun run lint:fix` - run Biome autofixes over source, tests, scripts, and codegen config.
 - `bun run typecheck` - run `tsc --noEmit`.
 - `bun test` - run Bun tests; live tests skip unless `SPECKLE_TOKEN` is present.
 - `bun run build` - emit `dist/` with `tsc -p tsconfig.build.json` and `tsc-alias`.
