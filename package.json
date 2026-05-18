@@ -20,6 +20,11 @@
       "import": "./dist/cli/index.js",
       "default": "./dist/cli/index.js"
     },
+    "./duckdb": {
+      "types": "./dist/duckdb.d.ts",
+      "import": "./dist/duckdb.js",
+      "default": "./dist/duckdb.js"
+    },
     "./package.json": "./package.json"
   },
   "bin": {
@@ -62,6 +67,8 @@
     "test": "bun test",
     "snapshot:insights": "bun test test/insights.live.test.ts",
     "account:info": "bun run scripts/account-info.ts",
+    "duckdb:index": "bun run scripts/duckdb-index-sources.ts",
+    "duckdb:inspect": "duckdb -readonly ${SPECKLE_DUCKDB_PATH:-tmp/speckle.duckdb} < scripts/duckdb-inspect.sql",
     "template:new": "bun run scripts/template-new.ts",
     "cli": "bun run src/cli/index.ts",
     "typecheck": "tsc --noEmit",
@@ -78,6 +85,7 @@
     "zod": "^4"
   },
   "peerDependencies": {
+    "@duckdb/node-api": "^1.5.0",
     "@opentui/core": "^0.2.0",
     "@opentui/react": "^0.2.0",
     "citty": "^0.1.6",
@@ -88,6 +96,9 @@
     "yaml": "^2.6.0"
   },
   "peerDependenciesMeta": {
+    "@duckdb/node-api": {
+      "optional": true
+    },
     "@opentui/core": {
       "optional": true
     },

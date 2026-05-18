@@ -107,6 +107,61 @@ const result = await sk.project("PROJECT_ID").model("MODEL_ID").loadLatestObject
 });
 ```
 
+DuckDB support is exposed as an optional subpath so normal clients do not load
+native DuckDB bindings. The cache adapter stores raw loader items; the graph
+indexer builds structural tables for property/display/proxy queries.
+
+```ts
+import { DuckDBConnection } from "@duckdb/node-api";
+import {
+  createDuckDbObjectDatabase,
+  indexSpeckleObjectGraph,
+} from "@suffolk/speckle/duckdb";
+
+const connection = await DuckDBConnection.create();
+const database = createDuckDbObjectDatabase({ connection });
+const result = await sk.project("PROJECT_ID").model("MODEL_ID").loadLatestObject({
+  cache: { kind: "custom", database },
+});
+
+try {
+  await indexSpeckleObjectGraph({
+    connection,
+    handle: result.handle,
+    projectId: "PROJECT_ID",
+    modelId: "MODEL_ID",
+    versionId: result.versionId,
+  });
+} finally {
+  await result.dispose();
+}
+```
+
+To create an inspectable DuckDB file from `test/source-examples.json`:
+
+```bash
+bun add -d @duckdb/node-api
+SPECKLE_TOKEN=... bun run duckdb:index
+```
+
+The script writes `tmp/speckle.duckdb` by default. Override with
+`SPECKLE_DUCKDB_PATH=path/to/file.duckdb`. Index only one manifest source with
+`SPECKLE_DUCKDB_SOURCE_INDEX=0`.
+
+Inspect from the DuckDB CLI:
+
+```bash
+brew install duckdb
+duckdb -readonly tmp/speckle.duckdb
+.read scripts/duckdb-inspect.sql
+```
+
+Or run the canned inspection directly:
+
+```bash
+bun run duckdb:inspect
+```
+
 ### Transforms
 
 Pure data reshapers — zero I/O. Imported separately from loaders.

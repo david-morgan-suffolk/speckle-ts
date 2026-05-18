@@ -2,39 +2,39 @@ import { test, expect } from "bun:test";
 import { Speckle } from "../src/client.js";
 import { buildSpeckleUrl } from "../src/url.js";
 import type { ReceiveSpeckleObjectResult } from "../src/objects.js";
+import sourceExamples from "./source-examples.json";
 
 const TOKEN = process.env.SPECKLE_TOKEN ?? "";
 const SERVER = process.env.SPECKLE_SERVER ?? "https://app.speckle.systems";
-const SOURCE_PROJECT_ID = process.env.SPECKLE_OBJECT_SOURCE_PROJECT_ID ?? "99f2e54226";
-const SOURCE_MODEL_ID = process.env.SPECKLE_OBJECT_SOURCE_MODEL_ID ?? "75ca627877";
-const TARGET_PROJECT_ID = process.env.SPECKLE_OBJECT_TARGET_PROJECT_ID ?? "61ae2ba25d";
-const TARGET_MODEL_ID = process.env.SPECKLE_OBJECT_TARGET_MODEL_ID ?? "3a716dc9c4";
+const SOURCE_EXAMPLES = sourceExamples.sources;
+const SEND_SOURCE = SOURCE_EXAMPLES[0] ?? sourceExamples.target;
+const TARGET_PROJECT_ID = process.env.SPECKLE_OBJECT_TARGET_PROJECT_ID ?? sourceExamples.target.projectId;
+const TARGET_MODEL_ID = process.env.SPECKLE_OBJECT_TARGET_MODEL_ID ?? sourceExamples.target.modelId;
 const LIVE_SEND = process.env.SPECKLE_OBJECT_SEND_LIVE === "1";
 
-test.skipIf(!TOKEN)(
-  "live objectloader2 receive loads the provided source model head",
-  async () => {
-    const speckle = new Speckle({ server: SERVER, token: TOKEN });
-    let result: ReceiveSpeckleObjectResult | null = null;
+for (const source of SOURCE_EXAMPLES) {
+  test.skipIf(!TOKEN)(
+    `live objectloader2 receive loads source model ${source.projectId}/${source.modelId}`,
+    async () => {
+      const speckle = new Speckle({ server: SERVER, token: TOKEN });
+      let result: ReceiveSpeckleObjectResult | null = null;
 
-    try {
-      result = await speckle
-        .project(SOURCE_PROJECT_ID)
-        .model(SOURCE_MODEL_ID)
-        .loadLatestObject();
-      expect(result.versionId).toBeTruthy();
-      expect(result.objectId).toBeTruthy();
-      expect(result.handle.objectIds.length).toBeGreaterThan(0);
-      const root = await result.handle.getRoot();
-      expect(root.id).toBe(result.objectId);
-      expect(root.speckle_type.length).toBeGreaterThan(0);
-    } finally {
-      await result?.dispose();
-      await speckle.dispose();
-    }
-  },
-  180_000,
-);
+      try {
+        result = await speckle.project(source.projectId).model(source.modelId).loadLatestObject();
+        expect(result.versionId).toBeTruthy();
+        expect(result.objectId).toBeTruthy();
+        expect(result.handle.objectIds.length).toBeGreaterThan(0);
+        const root = await result.handle.getRoot();
+        expect(root.id).toBe(result.objectId);
+        expect(root.speckle_type.length).toBeGreaterThan(0);
+      } finally {
+        await result?.dispose();
+        await speckle.dispose();
+      }
+    },
+    180_000,
+  );
+}
 
 test.skipIf(!TOKEN || !LIVE_SEND)(
   "live object send creates a target version and can load it back",
@@ -45,8 +45,8 @@ test.skipIf(!TOKEN || !LIVE_SEND)(
 
     try {
       source = await speckle
-        .project(SOURCE_PROJECT_ID)
-        .model(SOURCE_MODEL_ID)
+        .project(SEND_SOURCE.projectId)
+        .model(SEND_SOURCE.modelId)
         .loadLatestObject();
       const sendResult = await speckle
         .project(TARGET_PROJECT_ID)

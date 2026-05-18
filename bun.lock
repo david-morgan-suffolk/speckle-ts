@@ -33,6 +33,7 @@
         "yaml": "^2.6.0",
       },
       "peerDependencies": {
+        "@duckdb/node-api": "^1.5.0",
         "@opentui/core": "^0.2.0",
         "@opentui/react": "^0.2.0",
         "citty": "^0.1.6",
@@ -43,6 +44,7 @@
         "yaml": "^2.6.0",
       },
       "optionalPeers": [
+        "@duckdb/node-api",
         "@opentui/core",
         "@opentui/react",
         "citty",
